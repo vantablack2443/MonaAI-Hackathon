@@ -13,10 +13,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const today = new Date().toISOString().split('T')[0];
+    const systemWithDate = `Today's date is ${today}. Use this as the current date for all date calculations and validity checks.\n\n${systemPrompt}`;
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
-      systemInstruction: systemPrompt,
+      systemInstruction: systemWithDate,
     });
 
     const history = messages.slice(0, -1).map((msg: { role: string; content: string }) => ({
