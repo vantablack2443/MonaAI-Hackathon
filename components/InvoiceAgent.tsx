@@ -208,6 +208,7 @@ export default function InvoiceAgent({ systemPrompt }: InvoiceAgentProps) {
           messages: [{ role: 'user', content: `Categorize this invoice from ${email.from} (${email.fromEmail}).` }],
           systemPrompt,
           files: [filePayload],
+          temperature: 0.1,
         }),
       });
       const chatJson = await chatRes.json();

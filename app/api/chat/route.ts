@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, systemPrompt, files, enableSearch } = await req.json();
+    const { messages, systemPrompt, files, enableSearch, temperature } = await req.json();
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === 'your_gemini_api_key_here') {
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       systemInstruction: systemWithDate,
+      generationConfig: { temperature: temperature ?? 1.0 },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ...(enableSearch ? { tools: [{ googleSearch: {} } as any] } : {}),
     });

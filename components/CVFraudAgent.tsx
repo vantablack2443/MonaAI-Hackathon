@@ -184,6 +184,7 @@ export default function CVFraudAgent({ systemPrompt }: CVFraudAgentProps) {
           systemPrompt,
           files: apiFiles,
           enableSearch: true,
+          temperature: 0.2,
         }),
       });
       const data = await res.json();

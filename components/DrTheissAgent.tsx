@@ -73,6 +73,7 @@ export default function DrTheissAgent({ groupAgents, initialAgentId }: DrTheissA
           messages: [{ role: 'user', content: message }],
           systemPrompt: active.systemPrompt,
           files: [],
+          temperature: 0.9,
         }),
       });
       const data = await res.json();

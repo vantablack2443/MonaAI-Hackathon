@@ -120,6 +120,7 @@ export default function InterviewAgent({ systemPrompt }: InterviewAgentProps) {
           messages: [{ role: 'user', content: message }],
           systemPrompt,
           files,
+          temperature: 0.5,
         }),
       });
       const data = await res.json();

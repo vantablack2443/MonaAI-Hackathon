@@ -242,6 +242,7 @@ export default function WorkPermitAgent({ systemPrompt }: WorkPermitAgentProps) 
           messages: [{ role: 'user', content: userContent }],
           systemPrompt,
           files: filePayloads,
+          temperature: 0.2,
         }),
       });
       const data = await res.json();

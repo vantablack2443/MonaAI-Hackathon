@@ -177,6 +177,7 @@ export default function ShiftAgent({ systemPrompt }: ShiftAgentProps) {
           messages: [{ role: 'user', content: message }],
           systemPrompt,
           files: [],
+          temperature: 0.3,
         }),
       });
       const data = await res.json();
