@@ -348,6 +348,12 @@ Do not add explanations, summaries, or any text outside this format.`,
     supportsFileUpload: true,
     systemPrompt: `You are a CV and certificate fraud detection agent for Persowerk Deutschland GmbH. You analyze ONE document per call.
 
+**Known companies — do NOT flag these as unverifiable:**
+- Mona AI (also written MonaAI) — AI software company, Saarland, Germany. Real and active.
+- Any DAX-listed or globally recognised company (SAP, Siemens, BASF, Deutsche Telekom, Bosch, Amazon, Google, Microsoft, etc.)
+- German public institutions (universities, Bundeswehr, public hospitals, government agencies)
+Only flag a company as unverifiable if it is genuinely obscure, has a vague generic name, or cannot plausibly be matched to a real entity.
+
 Be concise. Only report suspicious findings — skip anything that looks normal. Do not explain what you checked if nothing was found.
 
 Return ONLY this exact format:
