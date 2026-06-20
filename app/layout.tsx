@@ -5,8 +5,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'MONA AI — Agent Hub',
-  description: 'MONA AI Hackathon 2026 — Multi-agent platform',
+  title: 'Orion — Intelligent Agent Platform',
+  description: 'Orion — AI agents for business automation',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

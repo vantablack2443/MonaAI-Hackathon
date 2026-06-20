@@ -22,15 +22,15 @@ export default function Home() {
             >
               <Sparkles size={38} className="text-white" />
             </div>
-            <h1 className="text-4xl font-bold text-white mb-3" style={{ letterSpacing: '-0.02em' }}>MONA AI</h1>
-            <p className="text-lg mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Agent Hub · Hackathon 2026</p>
+            <h1 className="text-4xl font-bold text-white mb-3" style={{ letterSpacing: '-0.02em' }}>Orion</h1>
+            <p className="text-lg mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Intelligent Agent Platform</p>
             <p className="text-sm max-w-sm mt-2" style={{ color: 'rgba(255,255,255,0.3)' }}>
-              Select an agent from the sidebar to begin. Each agent is specialized for a specific business workflow.
+              Select an agent from the sidebar to begin. Each agent is purpose-built for a specific business workflow.
             </p>
             <div className="mt-10 grid grid-cols-2 gap-3 max-w-sm text-left">
               {[
                 { label: '10 Agents', desc: 'Business-specialized AI' },
-                { label: 'Gemini 2.5 Flash', desc: 'Google AI at the core' },
+                { label: 'Powered by Gemini', desc: 'Google AI at the core' },
                 { label: 'File Upload', desc: 'PDFs, images & documents' },
                 { label: 'Secure', desc: 'Prompt-injection protection' },
               ].map((item) => (

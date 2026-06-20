@@ -23,8 +23,8 @@ export default function Sidebar({ selectedAgent, onSelectAgent }: SidebarProps) 
             <Sparkles size={18} className="text-white" />
           </div>
           <div>
-            <h1 className="text-white font-semibold text-sm tracking-wide">MONA AI</h1>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Hackathon 2026</p>
+            <h1 className="text-white font-semibold text-sm tracking-wide">Orion</h1>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Agent Platform</p>
           </div>
         </div>
       </div>
@@ -64,7 +64,7 @@ export default function Sidebar({ selectedAgent, onSelectAgent }: SidebarProps) 
       </div>
 
       <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.2)' }}>MONA AI GmbH · 2026</p>
+        <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.2)' }}>Orion · Intelligent Agents</p>
       </div>
     </div>
   );
