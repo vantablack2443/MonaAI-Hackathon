@@ -53,17 +53,6 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Security
-
-The Secure Email Agent (Rheinmetall) implements three layers of prompt-injection protection:
-
-1. **Pre-scan** — 15 regex patterns check all input for injection attempts before anything reaches Gemini
-2. **Structural separation** — documents are passed as binary data parts, not embedded in the prompt
-3. **Output validation** — responses are rejected if they don't match the expected checklist schema
-
-## CV Fraud Detection
-
-The CV Fraud agent uses **Google Search grounding** — Gemini actively searches the web to verify whether each employer actually exists before rating the CV. Unverifiable companies raise the risk score to Medium.
 
 ## Notes
 
