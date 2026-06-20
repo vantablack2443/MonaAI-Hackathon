@@ -5,6 +5,7 @@ import ChatArea from '@/components/ChatArea';
 import WorkPermitAgent from '@/components/WorkPermitAgent';
 import InvoiceAgent from '@/components/InvoiceAgent';
 import ShiftAgent from '@/components/ShiftAgent';
+import InterviewAgent from '@/components/InterviewAgent';
 import { Agent } from '@/lib/agents';
 import { Sparkles } from 'lucide-react';
 
@@ -22,6 +23,8 @@ export default function Home() {
             ? <InvoiceAgent systemPrompt={selectedAgent.systemPrompt} />
             : selectedAgent.id === 'shift-replacement'
             ? <ShiftAgent systemPrompt={selectedAgent.systemPrompt} />
+            : selectedAgent.id === 'interview-support'
+            ? <InterviewAgent systemPrompt={selectedAgent.systemPrompt} />
             : <ChatArea agent={selectedAgent} />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center px-8">
