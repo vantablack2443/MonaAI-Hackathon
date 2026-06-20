@@ -35,6 +35,28 @@ function parseResults(text: string, fileNames: string[]): FileResult[] {
   return blocks.map((block, i) => parseBlock(block, fileNames[i] || `Document ${i + 1}`));
 }
 
+function calcConfidence(fields: {
+  isWorkPermit: boolean | null;
+  status: FileResult['status'];
+  validUntil: string;
+  daysRemaining: string;
+  workAuthorization: string;
+}): number {
+  let score = 0;
+  // +25 if document is identified as a work permit
+  if (fields.isWorkPermit === true) score += 25;
+  else if (fields.isWorkPermit === false) score += 10; // identified but not a permit — still extracted info
+  // +25 if expiry date was found
+  if (fields.validUntil && fields.validUntil !== '—' && fields.validUntil !== 'Not found') score += 25;
+  // +20 if status could be determined
+  if (fields.status !== 'Unknown') score += 20;
+  // +15 if days remaining was calculated
+  if (fields.daysRemaining && fields.daysRemaining !== '—') score += 15;
+  // +15 if work authorization scope was extracted
+  if (fields.workAuthorization && fields.workAuthorization !== '—' && fields.workAuthorization !== 'Not specified') score += 15;
+  return Math.min(score, 100);
+}
+
 function parseBlock(block: string, fallbackName: string): FileResult {
   const get = (key: string) => {
     const match = block.match(new RegExp(`\\*\\*${key}[:\\*]+\\s*(.+)`, 'i'));
@@ -50,8 +72,9 @@ function parseBlock(block: string, fallbackName: string): FileResult {
     statusStr.includes('not yet') ? 'Not yet active' :
     statusStr.includes('valid') ? 'Valid' : 'Unknown';
 
-  const confidenceStr = get('Confidence');
-  const confidence = parseInt(confidenceStr) || 0;
+  const validUntil = get('Valid Until') || '—';
+  const daysRemaining = get('Days Remaining') || '—';
+  const workAuthorization = get('Work Authorization') || '—';
 
   const nameMatch = block.match(/^([^\n*]+)/);
   const docName = nameMatch ? nameMatch[1].replace(/\*+/g, '').trim() : fallbackName;
@@ -61,10 +84,10 @@ function parseBlock(block: string, fallbackName: string): FileResult {
     name: displayName,
     isWorkPermit,
     status,
-    validUntil: get('Valid Until') || '—',
-    daysRemaining: get('Days Remaining') || '—',
-    workAuthorization: get('Work Authorization') || '—',
-    confidence,
+    validUntil,
+    daysRemaining,
+    workAuthorization,
+    confidence: calcConfidence({ isWorkPermit, status, validUntil, daysRemaining, workAuthorization }),
     note: get('Note') || undefined,
     raw: block,
   };

@@ -48,7 +48,6 @@ For each document reply with ONLY this structure, nothing else:
 **Valid Until:** [date or "Not found"]
 **Days Remaining:** [number or "Expired X days ago"]
 **Work Authorization:** [brief description or "Not specified"]
-**Confidence:** [0–100]%
 **Note:** [one line only if there is something worth flagging, otherwise omit this line]
 
 Do not add explanations, summaries, or any text outside this format.`,
