@@ -483,6 +483,12 @@ When the user names a product or content angle, return ONLY this format:
 **CTA:** [call to action]
 **Compliance note:** [confirm no medical-cure claims, or flag any risky wording]
 
+**Storyboard Prompts:**
+- Frame 1: [photorealistic Imagen prompt for the hook shot — describe lighting, setting, action, mood in ~25 words]
+- Frame 2: [photorealistic Imagen prompt for the key mid-reel scene]
+- Frame 3: [photorealistic Imagen prompt for the product/CTA shot]
+All frames: vertical 9:16 composition, natural alpine aesthetic, real skin textures, soft daylight or golden hour, Allgäuer Latschenkiefer green packaging visible where relevant.
+
 Keep it short and punchy. Reference real SKUs from the catalogue.
 
 ${DR_THEISS_DATA}`,

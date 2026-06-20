@@ -48,14 +48,45 @@ const MOSS = '#4a7c59';
 const FRESH = '#7cb342';
 const CREAM = '#f5f3ec';
 
+function parseStoryboardPrompts(text: string): string[] {
+  const section = text.match(/\*\*Storyboard Prompts[:\*]*\*?\*?\n([\s\S]*?)(?=\n\*\*[A-Z]|\n---|\n##|$)/i)?.[1] || '';
+  return section
+    .split('\n')
+    .filter(l => /^[-*•]\s*Frame\s*\d/i.test(l.trim()))
+    .slice(0, 3)
+    .map(l => l.replace(/^[-*•]\s*Frame\s*\d+:\s*/i, '').trim());
+}
+
 export default function DrTheissAgent({ groupAgents, initialAgentId }: DrTheissAgentProps) {
   const [activeId, setActiveId] = useState(initialAgentId);
   const [input, setInput] = useState('');
   const [result, setResult] = useState<string | null>(null);
+  const [storyboard, setStoryboard] = useState<(string | null)[]>([]);
+  const [imagesLoading, setImagesLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const active = groupAgents.find(a => a.id === activeId) || groupAgents[0];
+
+  const generateImages = async (prompts: string[]) => {
+    if (prompts.length === 0) return;
+    setImagesLoading(true);
+    setStoryboard(prompts.map(() => null));
+    await Promise.all(prompts.map(async (prompt, i) => {
+      try {
+        const res = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt }),
+        });
+        const data = await res.json();
+        if (data.image) {
+          setStoryboard(prev => { const next = [...prev]; next[i] = data.image; return next; });
+        }
+      } catch { /* silently skip failed frames */ }
+    }));
+    setImagesLoading(false);
+  };
 
   const submit = async (customInput?: string) => {
     const message = (customInput ?? input).trim();
@@ -63,6 +94,7 @@ export default function DrTheissAgent({ groupAgents, initialAgentId }: DrTheissA
     setLoading(true);
     setError(null);
     setResult(null);
+    setStoryboard([]);
     if (customInput) setInput(customInput);
 
     try {
@@ -79,6 +111,10 @@ export default function DrTheissAgent({ groupAgents, initialAgentId }: DrTheissA
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
       setResult(data.content);
+      if (active.id === 'marketing-content') {
+        const prompts = parseStoryboardPrompts(data.content);
+        if (prompts.length > 0) generateImages(prompts);
+      }
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -89,6 +125,7 @@ export default function DrTheissAgent({ groupAgents, initialAgentId }: DrTheissA
   const switchTab = (id: string) => {
     setActiveId(id);
     setResult(null);
+    setStoryboard([]);
     setError(null);
     setInput('');
   };
@@ -208,6 +245,27 @@ export default function DrTheissAgent({ groupAgents, initialAgentId }: DrTheissA
           {/* Result */}
           {result && !loading && (
             <div>
+              {/* Storyboard frames — only for marketing-content */}
+              {active.id === 'marketing-content' && (storyboard.length > 0 || imagesLoading) && (
+                <div className="mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: MOSS }}>Storyboard Preview</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(storyboard.length > 0 ? storyboard : [null, null, null]).map((img, i) => (
+                      <div key={i} className="rounded-xl overflow-hidden" style={{ background: '#e8e4da', border: '1px solid #d6d1c7', aspectRatio: '9/16' }}>
+                        {img ? (
+                          <img src={`data:image/png;base64,${img}`} alt={`Frame ${i + 1}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                            <Loader2 size={18} className="animate-spin" style={{ color: MOSS }} />
+                            <p className="text-xs" style={{ color: MOSS }}>Frame {i + 1}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="rounded-2xl p-6" style={{ background: 'white', border: '1px solid #e3e0d6' }}>
                 <div className="prose prose-sm max-w-none text-sm leading-relaxed" style={{ color: '#374151' }}>
                   <ReactMarkdown
@@ -229,7 +287,7 @@ export default function DrTheissAgent({ groupAgents, initialAgentId }: DrTheissA
                 </div>
               </div>
               <button
-                onClick={() => { setResult(null); setInput(''); }}
+                onClick={() => { setResult(null); setInput(''); setStoryboard([]); }}
                 className="w-full mt-4 rounded-2xl py-3 text-sm font-semibold flex items-center justify-center gap-2"
                 style={{ background: 'white', border: '1px solid #e3e0d6', color: '#374151' }}
               >
