@@ -8,6 +8,7 @@ export interface InvoiceEmail {
   amount: string;
   filename: string;
   mimeType: string;
+  category: string;
 }
 
 export const invoiceEmails: InvoiceEmail[] = [
@@ -21,6 +22,7 @@ export const invoiceEmails: InvoiceEmail[] = [
     amount: '€26,153.18',
     filename: '06_brightpath_consulting_en.docx',
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    category: 'Services & Consulting',
   },
   {
     id: '04',
@@ -32,6 +34,7 @@ export const invoiceEmails: InvoiceEmail[] = [
     amount: '$7,216.15',
     filename: '04_aws_cloud_en.docx',
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    category: 'Cloud & Software',
   },
   {
     id: '10',
@@ -43,6 +46,7 @@ export const invoiceEmails: InvoiceEmail[] = [
     amount: '€17,814.30',
     filename: '10_dell_hardware_en.png',
     mimeType: 'image/png',
+    category: 'Hardware & Equipment',
   },
   {
     id: '02',
@@ -54,6 +58,7 @@ export const invoiceEmails: InvoiceEmail[] = [
     amount: '€2,407.43',
     filename: '02_microsoft_licenses_en.pdf',
     mimeType: 'application/pdf',
+    category: 'Cloud & Software',
   },
   {
     id: '07',
@@ -65,6 +70,7 @@ export const invoiceEmails: InvoiceEmail[] = [
     amount: '€1,625.65',
     filename: '07_hotel_adlon_de.docx',
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    category: 'Services & Consulting',
   },
   {
     id: '05',
@@ -76,6 +82,7 @@ export const invoiceEmails: InvoiceEmail[] = [
     amount: '€841.88',
     filename: '05_buerobedarf_de.png',
     mimeType: 'image/png',
+    category: 'Office Supplies',
   },
   {
     id: '08',
@@ -87,6 +94,7 @@ export const invoiceEmails: InvoiceEmail[] = [
     amount: '€496.10',
     filename: '08_adobe_creativecloud_en.png',
     mimeType: 'image/png',
+    category: 'Cloud & Software',
   },
   {
     id: '01',
@@ -98,6 +106,7 @@ export const invoiceEmails: InvoiceEmail[] = [
     amount: '€258.44',
     filename: '01_stadtwerke_gas_de.pdf',
     mimeType: 'application/pdf',
+    category: 'Utilities',
   },
   {
     id: '03',
@@ -109,6 +118,7 @@ export const invoiceEmails: InvoiceEmail[] = [
     amount: '€163.09',
     filename: '03_eon_strom_de.png',
     mimeType: 'image/png',
+    category: 'Utilities',
   },
   {
     id: '09',
@@ -120,5 +130,6 @@ export const invoiceEmails: InvoiceEmail[] = [
     amount: '€86.73',
     filename: '09_telekom_internet_de.pdf',
     mimeType: 'application/pdf',
+    category: 'Utilities',
   },
 ];
