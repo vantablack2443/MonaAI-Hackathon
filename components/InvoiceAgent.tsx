@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
-import { Upload, X, FileText, AlertTriangle, Loader2, Send, Building2, Hash, Calendar, DollarSign, Tag, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Upload, X, FileText, AlertTriangle, Loader2, Send, Building2, Hash, Calendar, DollarSign, Tag, ArrowRight, AlertCircle, CheckCircle2, Mail, Inbox } from 'lucide-react';
+import { invoiceEmails, InvoiceEmail } from '@/lib/invoice-emails';
 
 interface InvoiceResult {
   name: string;
@@ -196,6 +197,9 @@ export default function InvoiceAgent({ systemPrompt }: InvoiceAgentProps) {
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [manualInput, setManualInput] = useState('');
+  const [view, setView] = useState<'inbox' | 'upload'>('inbox');
+  const [processingEmailId, setProcessingEmailId] = useState<string | null>(null);
+  const [processedEmail, setProcessedEmail] = useState<InvoiceEmail | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const addFiles = (incoming: File[]) => {
@@ -228,15 +232,13 @@ export default function InvoiceAgent({ systemPrompt }: InvoiceAgentProps) {
     addFiles(Array.from(e.dataTransfer.files));
   };
 
-  const process = async () => {
-    if (files.length === 0 && !manualInput.trim()) return;
+  const processFiles = async (targetFiles: AttachedFile[], extraContext = '') => {
     setLoading(true);
     setError(null);
     setResults(null);
 
-    // Convert DOCX/CSV/XLSX to plain text; keep PDF/images as inline data for Gemini
     const filePayloads: { name: string; mimeType: string; data?: string; text?: string }[] = [];
-    for (const f of files) {
+    for (const f of targetFiles) {
       const match = f.dataUrl.match(/^data:(.+);base64,(.*)$/);
       if (!match) continue;
       const [, mimeType, data] = match;
@@ -258,10 +260,8 @@ export default function InvoiceAgent({ systemPrompt }: InvoiceAgentProps) {
       }
     }
 
-    const fileNames = files.length > 0 ? files.map(f => f.name) : ['manual-entry'];
-    const userContent = files.length > 0
-      ? `Process the following ${files.length} invoice(s): ${fileNames.join(', ')}. ${manualInput}`
-      : manualInput;
+    const fileNames = targetFiles.map(f => f.name);
+    const userContent = `Process the following ${targetFiles.length} invoice(s): ${fileNames.join(', ')}. ${extraContext}`;
 
     try {
       const res = await fetch('/api/chat', {
@@ -279,7 +279,55 @@ export default function InvoiceAgent({ systemPrompt }: InvoiceAgentProps) {
     }
   };
 
-  const reset = () => { setFiles([]); setResults(null); setError(null); setManualInput(''); };
+  const process = async () => {
+    if (files.length === 0 && !manualInput.trim()) return;
+    if (files.length === 0) {
+      setLoading(true);
+      setError(null);
+      setResults(null);
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: [{ role: 'user', content: manualInput }], systemPrompt }),
+        });
+        const data = await res.json();
+        if (data.error) { setError(data.error); return; }
+        setResults(parseInvoices(data.content, ['manual-entry']));
+      } catch {
+        setError('Network error. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    await processFiles(files, manualInput);
+  };
+
+  const handleEmailClick = async (email: InvoiceEmail) => {
+    setProcessingEmailId(email.id);
+    setProcessedEmail(email);
+    setError(null);
+    try {
+      const res = await fetch(`/api/invoice-file/${email.id}`);
+      const json = await res.json();
+      if (json.error) { setError(json.error); setProcessingEmailId(null); return; }
+      const dataUrl = `data:${json.mimeType};base64,${json.data}`;
+      await processFiles(
+        [{ name: json.filename, dataUrl }],
+        `This invoice arrived via email from ${email.from} (${email.fromEmail}), subject: "${email.subject}", received ${email.date}.`
+      );
+    } catch {
+      setError('Failed to load invoice from email. Please try again.');
+    } finally {
+      setProcessingEmailId(null);
+    }
+  };
+
+  const reset = () => {
+    setFiles([]); setResults(null); setError(null);
+    setManualInput(''); setProcessedEmail(null);
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: '#f8f9fb' }}>
@@ -307,10 +355,79 @@ export default function InvoiceAgent({ systemPrompt }: InvoiceAgentProps) {
       <div className="flex-1 overflow-y-auto px-8 py-8">
         {!results ? (
           <div className="max-w-2xl mx-auto">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-1" style={{ color: '#1a3d1f' }}>Process Invoices</h2>
-              <p className="text-sm text-gray-500">Upload invoice documents or paste invoice details. Each invoice is categorized and routed automatically.</p>
+            {/* View toggle */}
+            <div className="flex gap-1 mb-6 p-1 rounded-xl w-fit" style={{ background: '#e5e7eb' }}>
+              {(['inbox', 'upload'] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                  style={view === v ? { background: 'white', color: '#1a3d1f', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' } : { color: '#6b7280' }}
+                >
+                  {v === 'inbox' ? <Inbox size={14} /> : <Upload size={14} />}
+                  {v === 'inbox' ? 'Email Inbox' : 'Upload Manually'}
+                </button>
+              ))}
             </div>
+
+            {/* Inbox view */}
+            {view === 'inbox' && (
+              <div>
+                <div className="mb-4">
+                  <h2 className="text-xl font-bold mb-1" style={{ color: '#1a3d1f' }}>Finance Inbox</h2>
+                  <p className="text-sm text-gray-500">Click any email to have the agent automatically extract and route the invoice.</p>
+                </div>
+                <div className="space-y-2">
+                  {invoiceEmails.map(email => {
+                    const isProcessing = processingEmailId === email.id;
+                    return (
+                      <button
+                        key={email.id}
+                        onClick={() => !processingEmailId && handleEmailClick(email)}
+                        disabled={!!processingEmailId}
+                        className="w-full text-left rounded-xl px-5 py-4 transition-all duration-150 disabled:opacity-60"
+                        style={{ background: 'white', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+                        onMouseEnter={e => { if (!processingEmailId) (e.currentTarget as HTMLElement).style.borderColor = '#f47920'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb'; }}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: 'rgba(244,121,32,0.1)' }}>
+                              {isProcessing
+                                ? <Loader2 size={14} color="#f47920" className="animate-spin" />
+                                : <Mail size={14} color="#f47920" />}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-sm font-semibold text-gray-900 truncate">{email.from}</span>
+                                <span className="text-xs text-gray-400 flex-shrink-0">{email.date}</span>
+                              </div>
+                              <p className="text-sm text-gray-700 font-medium truncate mb-1">{email.subject}</p>
+                              <p className="text-xs text-gray-400 truncate">{email.preview}</p>
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 text-sm font-bold" style={{ color: '#1a3d1f' }}>{email.amount}</div>
+                        </div>
+                        {isProcessing && (
+                          <div className="mt-3 flex items-center gap-2 text-xs" style={{ color: '#f47920' }}>
+                            <Loader2 size={11} className="animate-spin" />
+                            Fetching invoice and processing…
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Upload view */}
+            {view === 'upload' && (
+              <div>
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold mb-1" style={{ color: '#1a3d1f' }}>Process Invoices</h2>
+                  <p className="text-sm text-gray-500">Upload invoice documents or paste invoice details. Each invoice is categorized and routed automatically.</p>
+                </div>
 
             {/* Drop zone */}
             <div
@@ -365,12 +482,6 @@ export default function InvoiceAgent({ systemPrompt }: InvoiceAgentProps) {
               </div>
             </div>
 
-            {error && (
-              <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm mb-4" style={{ background: 'rgba(220,38,38,0.07)', border: '1px solid rgba(220,38,38,0.2)', color: '#b91c1c' }}>
-                <AlertTriangle size={15} className="flex-shrink-0" />{error}
-              </div>
-            )}
-
             {files.length > 0 && (
               <button
                 onClick={process}
@@ -384,16 +495,33 @@ export default function InvoiceAgent({ systemPrompt }: InvoiceAgentProps) {
                 }
               </button>
             )}
+            </div>
+            )} {/* end upload view */}
+
+            {error && (
+              <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm mt-4" style={{ background: 'rgba(220,38,38,0.07)', border: '1px solid rgba(220,38,38,0.2)', color: '#b91c1c' }}>
+                <AlertTriangle size={15} className="flex-shrink-0" />{error}
+              </div>
+            )}
           </div>
         ) : (
           <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-bold" style={{ color: '#1a3d1f' }}>Processing Results</h2>
-                <p className="text-sm text-gray-500 mt-0.5">{results.length} invoice{results.length > 1 ? 's' : ''} processed</p>
+                {processedEmail ? (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Mail size={12} color="#9ca3af" />
+                    <p className="text-xs text-gray-400">
+                      From <span className="font-medium text-gray-600">{processedEmail.fromEmail}</span> · {processedEmail.date}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-0.5">{results.length} invoice{results.length > 1 ? 's' : ''} processed</p>
+                )}
               </div>
               <button onClick={reset} className="px-4 py-2 rounded-xl text-sm font-medium transition-colors" style={{ background: 'white', border: '1px solid #e5e7eb', color: '#374151' }}>
-                Process more
+                Back to inbox
               </button>
             </div>
             <div className="space-y-4">
