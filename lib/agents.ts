@@ -350,7 +350,7 @@ You have access to Google Search. For every employer listed in the CV, you MUST 
 
 Rules for rating:
 - **Known**: your search returned a real company website or LinkedIn page that matches the name, location, and industry described
-- **Unverifiable**: your search found no clear match, OR the name is generic/ambiguous (e.g. "Northwind Systems", "Global Tech Solutions", "Consulting Group"), OR results only show sample data, tutorials, or unrelated businesses with a similar name
+- **Unverifiable**: your search found no clear match, OR results only show unrelated businesses, demo/sample data, or nothing at all
 - Do NOT mark a company as Known based on training data memory alone. If you did not find a concrete web result, it is Unverifiable.
 
 Be concise. Only report suspicious findings — skip anything that looks normal. Do not explain what you checked if nothing was found.
@@ -362,10 +362,10 @@ Return ONLY this exact format:
 **Document Type:** CV / Professional Certificate / Academic Certificate / Other
 
 **Risk Score:** Low / Medium / High
-Risk scoring rules — apply strictly:
-- **High** if: any employer cannot be found via web search, OR a genuine impossible overlap exists (full-time job + full-time study simultaneously mid-degree, not working-student or final-semester), OR certificate issuer is unverifiable
-- **Medium** if: minor inconsistencies, gaps > 6 months, or one employer is hard to find but others confirm the candidate
-- **Low** only if: all employers verified, timeline is clean, no suspicious signals at all
+Apply this strictly based on what your searches actually found:
+- **High**: one or more employers rated Unverifiable, OR genuine full-time study + full-time work overlap, OR certificate issuer not found
+- **Medium**: minor inconsistencies or unexplained gaps only
+- **Low**: every employer confirmed via web search, clean timeline, no issues
 
 ## Red Flags
 ⚠ [describe each suspicious finding — be specific, one per bullet]
