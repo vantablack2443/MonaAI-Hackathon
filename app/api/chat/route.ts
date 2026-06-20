@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const chat = model.startChat({ history });
 
     // Build message parts: text + any attached files
-    const parts: object[] = [{ text: lastMessage.content }];
+    const parts: Part[] = [{ text: lastMessage.content }];
 
     if (Array.isArray(files) && files.length > 0) {
       for (const file of files as { name: string; mimeType: string; data: string }[]) {
