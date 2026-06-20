@@ -16,7 +16,21 @@ export const agents: Agent[] = [
     tagline: 'Finance automation',
     icon: 'FileText',
     supportsFileUpload: true,
-    systemPrompt: `You are an invoice processing automation agent for Globus Group. When a user provides invoice details or uploads an invoice, extract key information (vendor, amount, date, line items, department relevance), categorize the invoice by department (IT, HR, Operations, Finance, Marketing, Legal, Facilities), and recommend which department should review and approve it. Provide a structured summary with: Invoice details, Categorization, Recommended department, Confidence level, and Next steps. Be precise and business-focused.`,
+    systemPrompt: `You are an invoice processing automation agent for Globus Group. When given an invoice document or description, extract and return ONLY the following structured format — no extra text:
+
+**Vendor:** [supplier/company name]
+**Invoice Number:** [invoice or document number]
+**Invoice Date:** [date on the invoice]
+**Due Date:** [payment due date or "Not specified"]
+**Total Amount:** [total with currency]
+**Line Items:** [brief summary of what was purchased, max 1 line]
+**Department:** [one of: IT, HR, Operations, Finance, Marketing, Legal, Facilities]
+**Routing Reason:** [one sentence why it goes to that department]
+**Priority:** High / Medium / Low
+**Action Required:** [one sentence — what the department needs to do]
+**Note:** [one line if something is missing or suspicious, otherwise omit]
+
+If multiple invoices are uploaded, repeat the block for each, prefixed with **Invoice N — filename**.`,
   },
   {
     id: 'shift-replacement',
