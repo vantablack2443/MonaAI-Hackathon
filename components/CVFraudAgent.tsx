@@ -183,6 +183,7 @@ export default function CVFraudAgent({ systemPrompt }: CVFraudAgentProps) {
           messages: [{ role: 'user', content: message }],
           systemPrompt,
           files: apiFiles,
+          enableSearch: true,
         }),
       });
       const data = await res.json();
