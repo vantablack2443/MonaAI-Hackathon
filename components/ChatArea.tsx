@@ -35,9 +35,33 @@ export default function ChatArea({ agent }: ChatAreaProps) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  const SUPPORTED_TYPES = [
+    'application/pdf',
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'text/plain',
+  ];
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setError(null);
+
+    if (!SUPPORTED_TYPES.includes(file.type)) {
+      setError(
+        `Unsupported file type "${file.type || file.name}". Upload a PDF, image (PNG/JPG/WEBP), or text file. ZIP archives must be extracted first.`
+      );
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      setError('File too large (max 15MB). Please upload a smaller file.');
+      e.target.value = '';
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       setAttachedFileContent(reader.result as string);
@@ -57,6 +81,15 @@ export default function ChatArea({ agent }: ChatAreaProps) {
       userContent = `[Attached file: ${attachedFileName}]\n\n${text || 'Please analyze this document.'}`;
     }
 
+    // Parse the data URL (data:<mime>;base64,<data>) into a payload Gemini can read.
+    let filePayload: { mimeType: string; data: string } | undefined;
+    if (attachedFileContent) {
+      const match = attachedFileContent.match(/^data:(.+);base64,(.*)$/);
+      if (match) {
+        filePayload = { mimeType: match[1], data: match[2] };
+      }
+    }
+
     const newMessages: Message[] = [...messages, { role: 'user', content: userContent }];
     setMessages(newMessages);
     setInput('');
@@ -68,7 +101,7 @@ export default function ChatArea({ agent }: ChatAreaProps) {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, systemPrompt: agent.systemPrompt }),
+        body: JSON.stringify({ messages: newMessages, systemPrompt: agent.systemPrompt, file: filePayload }),
       });
       const data = await res.json();
       if (data.error) {
@@ -154,7 +187,7 @@ export default function ChatArea({ agent }: ChatAreaProps) {
                 type="file"
                 className="hidden"
                 onChange={handleFile}
-                accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx"
+                accept=".pdf,.png,.jpg,.jpeg,.webp,.txt"
               />
               <button
                 onClick={() => fileRef.current?.click()}

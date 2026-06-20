@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, systemPrompt } = await req.json();
+    const { messages, systemPrompt, file } = await req.json();
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === 'your_gemini_api_key_here') {
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       systemInstruction: systemPrompt,
     });
 
@@ -27,7 +27,18 @@ export async function POST(req: NextRequest) {
     const lastMessage = messages[messages.length - 1];
 
     const chat = model.startChat({ history });
-    const result = await chat.sendMessage(lastMessage.content);
+
+    // If a file was attached, send its content inline so Gemini can actually read it.
+    let result;
+    if (file && file.data && file.mimeType) {
+      result = await chat.sendMessage([
+        { text: lastMessage.content },
+        { inlineData: { mimeType: file.mimeType, data: file.data } },
+      ]);
+    } else {
+      result = await chat.sendMessage(lastMessage.content);
+    }
+
     const text = result.response.text();
 
     return NextResponse.json({ content: text });
