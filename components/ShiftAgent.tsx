@@ -34,6 +34,30 @@ const SCHEDULE = [
   { ward: 'General Med', date: 'Sun 06/21', time: '07:00–19:00', role: 'Registered Nurse', status: 'covered', employee: 'Nina Sørensen' },
 ];
 
+// Example prompts shown on the input screen
+const EXAMPLES = [
+  {
+    label: 'ICU night nurse called in sick — tonight',
+    hint: 'Sat 06/20 · 19:00–07:00 · RN with BLS+ACLS',
+    prompt: 'SHIFT GAP REPORTED: Department/Ward: ICU, Date: Sat 06/20, Time: 19:00–07:00, Role needed: Registered Nurse (BLS+ACLS). Originally assigned: Felix Haddad (HOSP-1059). Reason: Called in sick. Please find the top 3 eligible qualified staff and prepare outreach messages.',
+  },
+  {
+    label: 'Emergency night gap — needs TNCC cert',
+    hint: 'Sun 06/21 · 19:00–07:00 · RN with BLS+ACLS+TNCC',
+    prompt: 'Night shift gap in Emergency on Sun 06/21, 19:00–07:00. Need a Registered Nurse with BLS, ACLS and TNCC. Who is off, rested and qualified?',
+  },
+  {
+    label: 'Surgery day shift — short notice',
+    hint: 'Mon 06/22 · 07:00–19:00 · within weekly hour caps',
+    prompt: "We're short one Registered Nurse for the Surgery day shift on Mon 06/22, 07:00–19:00. Find available qualified staff within their weekly hour caps.",
+  },
+  {
+    label: 'Charge Nurse cover for Emergency',
+    hint: 'Tue 06/23 · day shift · no overtime breaches',
+    prompt: 'Need a Charge Nurse for Emergency on Tue 06/23 day shift, 07:00–19:00. Who can cover without breaching their max weekly hours?',
+  },
+];
+
 const URGENCY_STYLE: Record<string, { color: string; bg: string; border: string }> = {
   Critical: { color: '#dc2626', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.25)' },
   High:     { color: '#d97706', bg: 'rgba(217,119,6,0.08)', border: 'rgba(217,119,6,0.25)' },
@@ -259,7 +283,7 @@ export default function ShiftAgent({ systemPrompt }: ShiftAgentProps) {
                   <textarea
                     value={input}
                     onChange={e => setInput(e.target.value)}
-                    placeholder="e.g. Night shift gap in Kardiologie on 20.06, 22:00–06:00, need a Krankenpfleger..."
+                    placeholder="e.g. ICU night shift gap on Sat 06/20, 19:00–07:00, need an RN with BLS+ACLS..."
                     rows={4}
                     className="w-full text-sm text-gray-700 outline-none resize-none p-4"
                     style={{ background: 'transparent' }}
@@ -274,6 +298,26 @@ export default function ShiftAgent({ systemPrompt }: ShiftAgentProps) {
                     >
                       <Send size={13} /> Find Staff
                     </button>
+                  </div>
+                </div>
+
+                {/* Example prompts */}
+                <div className="mt-5">
+                  <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#6b8a8a' }}>Try an example</p>
+                  <div className="space-y-2">
+                    {EXAMPLES.map((ex) => (
+                      <button
+                        key={ex.label}
+                        onClick={() => submit(ex.prompt)}
+                        className="w-full text-left rounded-xl px-3.5 py-2.5 transition-all"
+                        style={{ background: 'white', border: '1px solid #e5e7eb' }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#00a878'; (e.currentTarget as HTMLElement).style.background = 'rgba(0,168,120,0.05)'; }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb'; (e.currentTarget as HTMLElement).style.background = 'white'; }}
+                      >
+                        <p className="text-sm font-medium" style={{ color: '#004f4f' }}>{ex.label}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{ex.hint}</p>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
