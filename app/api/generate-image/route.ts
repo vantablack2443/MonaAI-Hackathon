@@ -9,13 +9,13 @@ export async function POST(req: NextRequest) {
     }
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instances: [{ prompt }],
-          parameters: { sampleCount: 1, aspectRatio: '9:16' },
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseModalities: ['IMAGE'] },
         }),
       }
     );
@@ -26,10 +26,12 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json();
-    const b64 = data?.predictions?.[0]?.bytesBase64Encoded;
-    if (!b64) return NextResponse.json({ error: 'No image returned' }, { status: 500 });
+    const part = data?.candidates?.[0]?.content?.parts?.find(
+      (p: { inlineData?: { data: string } }) => p.inlineData?.data
+    );
+    if (!part) return NextResponse.json({ error: 'No image in response' }, { status: 500 });
 
-    return NextResponse.json({ image: b64 });
+    return NextResponse.json({ image: part.inlineData.data });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
