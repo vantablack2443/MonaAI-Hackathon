@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, systemPrompt, file } = await req.json();
+    const { messages, systemPrompt, files } = await req.json();
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === 'your_gemini_api_key_here') {
@@ -28,20 +28,20 @@ export async function POST(req: NextRequest) {
     }));
 
     const lastMessage = messages[messages.length - 1];
-
     const chat = model.startChat({ history });
 
-    // If a file was attached, send its content inline so Gemini can actually read it.
-    let result;
-    if (file && file.data && file.mimeType) {
-      result = await chat.sendMessage([
-        { text: lastMessage.content },
-        { inlineData: { mimeType: file.mimeType, data: file.data } },
-      ]);
-    } else {
-      result = await chat.sendMessage(lastMessage.content);
+    // Build message parts: text + any attached files
+    const parts: object[] = [{ text: lastMessage.content }];
+
+    if (Array.isArray(files) && files.length > 0) {
+      for (const file of files as { name: string; mimeType: string; data: string }[]) {
+        if (file.mimeType && file.data) {
+          parts.push({ inlineData: { mimeType: file.mimeType, data: file.data } });
+        }
+      }
     }
 
+    const result = await chat.sendMessage(parts);
     const text = result.response.text();
 
     return NextResponse.json({ content: text });

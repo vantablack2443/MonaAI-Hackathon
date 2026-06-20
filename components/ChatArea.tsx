@@ -9,17 +9,23 @@ interface Message {
   content: string;
 }
 
+interface AttachedFile {
+  name: string;
+  dataUrl: string;
+}
+
 interface ChatAreaProps {
   agent: Agent;
 }
+
+const SUPPORTED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'text/plain'];
 
 export default function ChatArea({ agent }: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [attachedFileName, setAttachedFileName] = useState<string | null>(null);
-  const [attachedFileContent, setAttachedFileContent] = useState<string | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -27,81 +33,75 @@ export default function ChatArea({ agent }: ChatAreaProps) {
     setMessages([]);
     setInput('');
     setError(null);
-    setAttachedFileName(null);
-    setAttachedFileContent(null);
+    setAttachedFiles([]);
   }, [agent.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  const SUPPORTED_TYPES = [
-    'application/pdf',
-    'image/png',
-    'image/jpeg',
-    'image/webp',
-    'text/plain',
-  ];
-
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
     setError(null);
 
-    if (!SUPPORTED_TYPES.includes(file.type)) {
-      setError(
-        `Unsupported file type "${file.type || file.name}". Upload a PDF, image (PNG/JPG/WEBP), or text file. ZIP archives must be extracted first.`
-      );
-      e.target.value = '';
-      return;
-    }
+    const newFiles: AttachedFile[] = [];
+    let pending = files.length;
 
-    if (file.size > 15 * 1024 * 1024) {
-      setError('File too large (max 15MB). Please upload a smaller file.');
-      e.target.value = '';
-      return;
+    for (const file of files) {
+      if (!SUPPORTED_TYPES.includes(file.type)) {
+        setError(`Unsupported file type: "${file.name}". Use PDF, image (PNG/JPG/WEBP), or text.`);
+        e.target.value = '';
+        return;
+      }
+      if (file.size > 15 * 1024 * 1024) {
+        setError(`"${file.name}" is too large (max 15MB).`);
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        newFiles.push({ name: file.name, dataUrl: reader.result as string });
+        pending--;
+        if (pending === 0) {
+          setAttachedFiles(prev => [...prev, ...newFiles]);
+        }
+      };
+      reader.readAsDataURL(file);
     }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAttachedFileContent(reader.result as string);
-      setAttachedFileName(file.name);
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+  };
+
+  const removeFile = (name: string) => {
+    setAttachedFiles(prev => prev.filter(f => f.name !== name));
   };
 
   const sendMessage = async () => {
     const text = input.trim();
-    if (!text && !attachedFileName) return;
+    if (!text && attachedFiles.length === 0) return;
     setError(null);
 
-    let userContent = text;
-    if (attachedFileName) {
-      userContent = `[Attached file: ${attachedFileName}]\n\n${text || 'Please analyze this document.'}`;
-    }
+    const fileNames = attachedFiles.map(f => f.name).join(', ');
+    const userContent = attachedFiles.length > 0
+      ? `[Attached: ${fileNames}]\n\n${text || 'Please analyze these documents.'}`
+      : text;
 
-    // Parse the data URL (data:<mime>;base64,<data>) into a payload Gemini can read.
-    let filePayload: { mimeType: string; data: string } | undefined;
-    if (attachedFileContent) {
-      const match = attachedFileContent.match(/^data:(.+);base64,(.*)$/);
-      if (match) {
-        filePayload = { mimeType: match[1], data: match[2] };
-      }
-    }
+    const filePayloads = attachedFiles.map(f => {
+      const match = f.dataUrl.match(/^data:(.+);base64,(.*)$/);
+      return match ? { name: f.name, mimeType: match[1], data: match[2] } : null;
+    }).filter(Boolean) as { name: string; mimeType: string; data: string }[];
 
     const newMessages: Message[] = [...messages, { role: 'user', content: userContent }];
     setMessages(newMessages);
     setInput('');
-    setAttachedFileName(null);
-    setAttachedFileContent(null);
+    setAttachedFiles([]);
     setLoading(true);
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, systemPrompt: agent.systemPrompt, file: filePayload }),
+        body: JSON.stringify({ messages: newMessages, systemPrompt: agent.systemPrompt, files: filePayloads }),
       });
       const data = await res.json();
       if (data.error) {
@@ -150,7 +150,7 @@ export default function ChatArea({ agent }: ChatAreaProps) {
                 className="mt-4 px-4 py-2 rounded-full text-xs"
                 style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: 'rgba(165,180,252,0.8)' }}
               >
-                Attach files using the paperclip icon below
+                Attach one or more files using the paperclip icon below
               </div>
             )}
           </div>
@@ -183,13 +183,17 @@ export default function ChatArea({ agent }: ChatAreaProps) {
 
       {/* Input */}
       <div className="px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(20px)' }}>
-        {attachedFileName && (
-          <div className="flex items-center gap-2 rounded-lg px-3 py-2 mb-3 w-fit" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>
-            <Paperclip size={13} style={{ color: '#a5b4fc' }} />
-            <span className="text-xs truncate max-w-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>{attachedFileName}</span>
-            <button onClick={() => { setAttachedFileName(null); setAttachedFileContent(null); }} className="ml-1 transition-colors" style={{ color: 'rgba(255,255,255,0.3)' }}>
-              <X size={13} />
-            </button>
+        {attachedFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {attachedFiles.map(f => (
+              <div key={f.name} className="flex items-center gap-2 rounded-lg px-3 py-1.5" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>
+                <Paperclip size={12} style={{ color: '#a5b4fc' }} />
+                <span className="text-xs truncate max-w-[160px]" style={{ color: 'rgba(255,255,255,0.7)' }}>{f.name}</span>
+                <button onClick={() => removeFile(f.name)} className="ml-1 transition-colors" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
         <div
@@ -198,7 +202,7 @@ export default function ChatArea({ agent }: ChatAreaProps) {
         >
           {agent.supportsFileUpload && (
             <>
-              <input ref={fileRef} type="file" className="hidden" onChange={handleFile} accept=".pdf,.png,.jpg,.jpeg,.webp,.txt" />
+              <input ref={fileRef} type="file" multiple className="hidden" onChange={handleFiles} accept=".pdf,.png,.jpg,.jpeg,.webp,.txt" />
               <button
                 onClick={() => fileRef.current?.click()}
                 className="flex-shrink-0 pb-0.5 transition-colors"
@@ -226,7 +230,7 @@ export default function ChatArea({ agent }: ChatAreaProps) {
           />
           <button
             onClick={sendMessage}
-            disabled={loading || (!input.trim() && !attachedFileName)}
+            disabled={loading || (!input.trim() && attachedFiles.length === 0)}
             className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
           >
