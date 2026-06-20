@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar';
 import ChatArea from '@/components/ChatArea';
 import WorkPermitAgent from '@/components/WorkPermitAgent';
 import InvoiceAgent from '@/components/InvoiceAgent';
+import ShiftAgent from '@/components/ShiftAgent';
 import { Agent } from '@/lib/agents';
 import { Sparkles } from 'lucide-react';
 
@@ -19,6 +20,8 @@ export default function Home() {
             ? <WorkPermitAgent systemPrompt={selectedAgent.systemPrompt} />
             : selectedAgent.id === 'invoice-processing'
             ? <InvoiceAgent systemPrompt={selectedAgent.systemPrompt} />
+            : selectedAgent.id === 'shift-replacement'
+            ? <ShiftAgent systemPrompt={selectedAgent.systemPrompt} />
             : <ChatArea agent={selectedAgent} />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center px-8">
