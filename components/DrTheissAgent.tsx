@@ -57,12 +57,18 @@ function parseStoryboardPrompts(text: string): string[] {
     .map(l => l.replace(/^[-*•]\s*Frame\s*\d+:\s*/i, '').trim());
 }
 
+interface StoryboardFrame {
+  image?: string;
+  error?: string;
+  loading: boolean;
+  prompt?: string;
+}
+
 export default function DrTheissAgent({ groupAgents, initialAgentId }: DrTheissAgentProps) {
   const [activeId, setActiveId] = useState(initialAgentId);
   const [input, setInput] = useState('');
   const [result, setResult] = useState<string | null>(null);
-  const [storyboard, setStoryboard] = useState<(string | null)[]>([]);
-  const [imagesLoading, setImagesLoading] = useState(false);
+  const [storyboard, setStoryboard] = useState<StoryboardFrame[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,8 +76,7 @@ export default function DrTheissAgent({ groupAgents, initialAgentId }: DrTheissA
 
   const generateImages = async (prompts: string[]) => {
     if (prompts.length === 0) return;
-    setImagesLoading(true);
-    setStoryboard(prompts.map(() => null));
+    setStoryboard(prompts.map((prompt) => ({ loading: true, prompt })));
     await Promise.all(prompts.map(async (prompt, i) => {
       try {
         const res = await fetch('/api/generate-image', {
@@ -81,11 +86,15 @@ export default function DrTheissAgent({ groupAgents, initialAgentId }: DrTheissA
         });
         const data = await res.json();
         if (data.image) {
-          setStoryboard(prev => { const next = [...prev]; next[i] = data.image; return next; });
+          setStoryboard(prev => { const next = [...prev]; next[i] = { loading: false, image: data.image, prompt }; return next; });
+        } else {
+          setStoryboard(prev => { const next = [...prev]; next[i] = { loading: false, error: data.error || 'No image returned', prompt }; return next; });
         }
-      } catch { /* silently skip failed frames */ }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Network error';
+        setStoryboard(prev => { const next = [...prev]; next[i] = { loading: false, error: msg, prompt }; return next; });
+      }
     }));
-    setImagesLoading(false);
   };
 
   const submit = async (customInput?: string) => {
@@ -246,19 +255,31 @@ export default function DrTheissAgent({ groupAgents, initialAgentId }: DrTheissA
           {result && !loading && (
             <div>
               {/* Storyboard frames — only for marketing-content */}
-              {active.id === 'marketing-content' && (storyboard.length > 0 || imagesLoading) && (
+              {active.id === 'marketing-content' && storyboard.length > 0 && (
                 <div className="mb-4">
                   <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: MOSS }}>Storyboard Preview</p>
                   <div className="grid grid-cols-3 gap-3">
-                    {(storyboard.length > 0 ? storyboard : [null, null, null]).map((img, i) => (
-                      <div key={i} className="rounded-xl overflow-hidden" style={{ background: '#e8e4da', border: '1px solid #d6d1c7', aspectRatio: '9/16' }}>
-                        {img ? (
-                          <img src={`data:image/png;base64,${img}`} alt={`Frame ${i + 1}`} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-                            <Loader2 size={18} className="animate-spin" style={{ color: MOSS }} />
-                            <p className="text-xs" style={{ color: MOSS }}>Frame {i + 1}</p>
-                          </div>
+                    {storyboard.map((frame, i) => (
+                      <div key={i} className="rounded-xl overflow-hidden flex flex-col" style={{ background: '#e8e4da', border: '1px solid #d6d1c7' }}>
+                        <div style={{ aspectRatio: '9/16', position: 'relative' }}>
+                          {frame.image ? (
+                            <img src={`data:image/png;base64,${frame.image}`} alt={`Frame ${i + 1}`} className="w-full h-full object-cover" />
+                          ) : frame.error ? (
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-3">
+                              <AlertTriangle size={16} style={{ color: '#b91c1c' }} />
+                              <p className="text-xs text-center" style={{ color: '#b91c1c' }}>{frame.error}</p>
+                            </div>
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                              <Loader2 size={18} className="animate-spin" style={{ color: MOSS }} />
+                              <p className="text-xs" style={{ color: MOSS }}>Frame {i + 1}</p>
+                            </div>
+                          )}
+                        </div>
+                        {frame.prompt && (
+                          <p className="text-xs px-2 py-1.5 leading-tight" style={{ color: '#6b7280', borderTop: '1px solid #d6d1c7' }}>
+                            {frame.prompt.length > 80 ? frame.prompt.slice(0, 80) + '…' : frame.prompt}
+                          </p>
                         )}
                       </div>
                     ))}
