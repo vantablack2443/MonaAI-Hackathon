@@ -8,6 +8,8 @@ import ShiftAgent from '@/components/ShiftAgent';
 import InterviewAgent from '@/components/InterviewAgent';
 import CVFraudAgent from '@/components/CVFraudAgent';
 import SecureEmailAgent from '@/components/SecureEmailAgent';
+import CustomerAnalyticsAgent from '@/components/CustomerAnalyticsAgent';
+import DynamicPricingAgent from '@/components/DynamicPricingAgent';
 import DrTheissAgent from '@/components/DrTheissAgent';
 import { agents, Agent } from '@/lib/agents';
 import { Sparkles } from 'lucide-react';
@@ -32,6 +34,10 @@ export default function Home() {
             ? <CVFraudAgent systemPrompt={selectedAgent.systemPrompt} />
             : selectedAgent.id === 'secure-email'
             ? <SecureEmailAgent systemPrompt={selectedAgent.systemPrompt} />
+            : selectedAgent.id === 'customer-analytics'
+            ? <CustomerAnalyticsAgent systemPrompt={selectedAgent.systemPrompt} />
+            : selectedAgent.id === 'dynamic-pricing'
+            ? <DynamicPricingAgent systemPrompt={selectedAgent.systemPrompt} />
             : selectedAgent.group
             ? <DrTheissAgent key={selectedAgent.id} groupAgents={agents.filter(a => a.group === selectedAgent.group)} initialAgentId={selectedAgent.id} />
             : <ChatArea agent={selectedAgent} />
