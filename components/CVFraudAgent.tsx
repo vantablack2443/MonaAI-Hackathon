@@ -110,8 +110,16 @@ function FileChip({ file, onRemove }: { file: AttachedFile; onRemove: () => void
   );
 }
 
+interface FileStatus {
+  file: AttachedFile;
+  status: 'pending' | 'loading' | 'done' | 'error';
+  result?: ParsedResult;
+  error?: string;
+}
+
 export default function CVFraudAgent({ systemPrompt }: CVFraudAgentProps) {
   const [files, setFiles] = useState<AttachedFile[]>([]);
+  const [fileStatuses, setFileStatuses] = useState<FileStatus[] | null>(null);
   const [results, setResults] = useState<ParsedResult[] | null>(null);
   const [rawResult, setRawResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -154,21 +162,19 @@ export default function CVFraudAgent({ systemPrompt }: CVFraudAgentProps) {
     Array.from(e.dataTransfer.files).forEach(f => processFile(f, type));
   };
 
-  const analyze = async () => {
-    if (files.length === 0) return;
-    setLoading(true);
-    setError(null);
-    setResults(null);
-
-    const cvFiles = files.filter(f => f.type === 'cv');
-    const certFiles = files.filter(f => f.type === 'certificate');
-    let message = `Please analyze the following documents for authenticity and fraud risk.\n`;
-    if (cvFiles.length) message += `\nCV/Resume files: ${cvFiles.map(f => f.name).join(', ')}`;
-    if (certFiles.length) message += `\nCertificate files: ${certFiles.map(f => f.name).join(', ')}`;
-    message += `\n\nFor each document, check: work history timeline integrity, employer credibility, skills plausibility, certificate authenticity indicators, and AI-generated content signals.`;
-
-    const apiFiles = files.map(f => ({ name: f.name, mimeType: f.mimeType, data: f.data, text: f.text }));
-
+  const analyzeOne = async (
+    cvFile: AttachedFile,
+    certFiles: AttachedFile[],
+    onDone: (result: ParsedResult) => void,
+    onError: (err: string) => void,
+    setStatus: (s: 'loading' | 'done' | 'error') => void,
+  ) => {
+    setStatus('loading');
+    const message = `Analyze this document for fraud and authenticity. Document: ${cvFile.name}`;
+    const apiFiles = [
+      { name: cvFile.name, mimeType: cvFile.mimeType, data: cvFile.data, text: cvFile.text },
+      ...certFiles.map(f => ({ name: f.name, mimeType: f.mimeType, data: f.data, text: f.text })),
+    ];
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -180,25 +186,77 @@ export default function CVFraudAgent({ systemPrompt }: CVFraudAgentProps) {
         }),
       });
       const data = await res.json();
-      if (data.error) { setError(data.error); return; }
-      setRawResult(data.content);
-      setResults(parseResults(data.content));
+      if (data.error) { setStatus('error'); onError(data.error); return; }
+      const parsed = parseResults(data.content);
+      const result = parsed[0] || { docName: cvFile.name, docType: 'CV', riskScore: 'Medium', raw: data.content };
+      setStatus('done');
+      onDone(result);
     } catch {
-      setError('Network error. Please try again.');
-    } finally {
-      setLoading(false);
+      setStatus('error');
+      onError('Network error');
     }
   };
 
-  const reset = () => { setFiles([]); setResults(null); setRawResult(null); setError(null); };
+  const analyze = async () => {
+    const cvFiles = files.filter(f => f.type === 'cv');
+    const certFiles = files.filter(f => f.type === 'certificate');
+    if (cvFiles.length === 0 && certFiles.length === 0) return;
+
+    // If no CVs, treat all files as CVs
+    const toAnalyze = cvFiles.length > 0 ? cvFiles : files;
+
+    const statuses: FileStatus[] = toAnalyze.map(f => ({ file: f, status: 'pending' }));
+    setFileStatuses(statuses);
+    setResults([]);
+    setLoading(true);
+    setError(null);
+
+    // Launch all in parallel — each updates state independently as it completes
+    await Promise.all(toAnalyze.map((cvFile, idx) =>
+      analyzeOne(
+        cvFile,
+        certFiles,
+        (result) => {
+          setResults(prev => [...(prev || []), result]);
+          setFileStatuses(prev => {
+            if (!prev) return prev;
+            const next = [...prev];
+            next[idx] = { ...next[idx], status: 'done', result };
+            return next;
+          });
+        },
+        (err) => {
+          setFileStatuses(prev => {
+            if (!prev) return prev;
+            const next = [...prev];
+            next[idx] = { ...next[idx], status: 'error', error: err };
+            return next;
+          });
+        },
+        (s) => {
+          setFileStatuses(prev => {
+            if (!prev) return prev;
+            const next = [...prev];
+            next[idx] = { ...next[idx], status: s };
+            return next;
+          });
+        },
+      )
+    ));
+    setLoading(false);
+  };
+
+  const reset = () => { setFiles([]); setResults(null); setRawResult(null); setError(null); setFileStatuses(null); };
 
   const cvFiles = files.filter(f => f.type === 'cv');
   const certFiles = files.filter(f => f.type === 'certificate');
 
-  const overallRisk = results
+  const showResults = fileStatuses !== null;
+  const overallRisk = results && results.length > 0
     ? results.some(r => r.riskScore === 'High') ? 'High'
     : results.some(r => r.riskScore === 'Medium') ? 'Medium' : 'Low'
     : null;
+  const pendingCount = fileStatuses ? fileStatuses.filter(s => s.status === 'pending' || s.status === 'loading').length : 0;
 
   return (
     <div className="flex flex-col h-full overflow-hidden" style={{ background: '#f4f5f7' }}>
@@ -223,7 +281,7 @@ export default function CVFraudAgent({ systemPrompt }: CVFraudAgentProps) {
         </div>
       </div>
 
-      {!results && !loading && (
+      {!showResults && (
         <div className="flex-1 overflow-y-auto px-8 py-8">
           <div className="max-w-2xl mx-auto space-y-5">
 
@@ -325,41 +383,60 @@ export default function CVFraudAgent({ systemPrompt }: CVFraudAgentProps) {
         </div>
       )}
 
-      {loading && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 size={32} className="animate-spin mx-auto mb-3" style={{ color: '#1a1a2e' }} />
-            <p className="text-sm font-medium" style={{ color: '#1a1a2e' }}>Analysing documents...</p>
-            <p className="text-xs text-gray-400 mt-1">Checking timelines, certificates, and authenticity signals</p>
-          </div>
-        </div>
-      )}
-
-      {results && (
+      {showResults && (
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <div className="max-w-2xl mx-auto space-y-4">
-            {/* Summary banner */}
-            {overallRisk && (
-              <div className="rounded-2xl px-5 py-4 flex items-center justify-between" style={{ background: '#1a1a2e' }}>
-                <div>
-                  <p className="text-white font-bold text-sm">Verification Complete</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
-                    {results.length} document{results.length > 1 ? 's' : ''} analysed · {results.filter(r => r.riskScore === 'High').length} high risk · {results.filter(r => r.riskScore === 'Medium').length} medium risk
-                  </p>
-                </div>
+            {/* Summary banner — updates live */}
+            <div className="rounded-2xl px-5 py-4 flex items-center justify-between" style={{ background: '#1a1a2e' }}>
+              <div>
+                <p className="text-white font-bold text-sm">
+                  {loading ? 'Analysing documents…' : 'Verification Complete'}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                  {results && results.length > 0
+                    ? `${results.length} done · ${results.filter(r => r.riskScore === 'High').length} high · ${results.filter(r => r.riskScore === 'Medium').length} medium risk`
+                    : 'Starting analysis…'}
+                  {pendingCount > 0 ? ` · ${pendingCount} remaining` : ''}
+                </p>
+              </div>
+              {overallRisk && (
                 <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold" style={{ background: RISK_STYLE[overallRisk].bg, color: RISK_STYLE[overallRisk].color, border: `1px solid ${RISK_STYLE[overallRisk].border}` }}>
                   {overallRisk === 'High' ? <ShieldAlert size={15} /> : overallRisk === 'Low' ? <ShieldCheck size={15} /> : <Shield size={15} />}
                   Overall: {overallRisk} Risk
                 </div>
+              )}
+            </div>
+
+            {/* Results appear as each completes */}
+            {results && results.map((r, i) => <ResultCard key={i} result={r} />)}
+
+            {/* Skeleton cards for in-progress files */}
+            {fileStatuses && fileStatuses.filter(s => s.status === 'loading' || s.status === 'pending').map((s, i) => (
+              <div key={`pending-${i}`} className="rounded-2xl overflow-hidden" style={{ border: '1px solid #e5e7eb', background: 'white' }}>
+                <div className="px-5 py-4 flex items-center gap-3" style={{ background: '#1a1a2e' }}>
+                  <Loader2 size={14} className="animate-spin" color="rgba(255,255,255,0.5)" />
+                  <p className="text-white text-sm font-medium">{s.file.name}</p>
+                  <p className="text-xs ml-auto" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {s.status === 'loading' ? 'Analysing…' : 'Queued'}
+                  </p>
+                </div>
               </div>
+            ))}
+
+            {/* Error cards */}
+            {fileStatuses && fileStatuses.filter(s => s.status === 'error').map((s, i) => (
+              <div key={`err-${i}`} className="rounded-2xl px-4 py-3 flex items-center gap-2 text-sm" style={{ background: 'rgba(220,38,38,0.07)', border: '1px solid rgba(220,38,38,0.2)', color: '#b91c1c' }}>
+                <AlertTriangle size={14} />
+                <span>{s.file.name}: {s.error || 'Failed to analyse'}</span>
+              </div>
+            ))}
+
+            {!loading && (
+              <button onClick={reset} className="w-full rounded-2xl py-3 text-sm font-semibold flex items-center justify-center gap-2" style={{ background: 'white', border: '1px solid #e5e7eb', color: '#374151' }}>
+                <RotateCcw size={14} />
+                Analyse New Documents
+              </button>
             )}
-
-            {results.map((r, i) => <ResultCard key={i} result={r} />)}
-
-            <button onClick={reset} className="w-full rounded-2xl py-3 text-sm font-semibold flex items-center justify-center gap-2" style={{ background: 'white', border: '1px solid #e5e7eb', color: '#374151' }}>
-              <RotateCcw size={14} />
-              Analyse New Documents
-            </button>
           </div>
         </div>
       )}
