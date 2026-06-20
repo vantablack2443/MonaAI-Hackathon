@@ -363,8 +363,8 @@ Return ONLY this exact format:
 
 **Risk Score:** Low / Medium / High
 Apply this strictly based on what your searches actually found:
-- **High**: one or more employers rated Unverifiable, OR genuine full-time study + full-time work overlap, OR certificate issuer not found
-- **Medium**: minor inconsistencies or unexplained gaps only
+- **High**: genuine full-time study + full-time work overlap, OR certificate issuer not found
+- **Medium**: one or more employers rated Unverifiable, OR minor inconsistencies or unexplained gaps
 - **Low**: every employer confirmed via web search, clean timeline, no issues
 
 ## Red Flags
