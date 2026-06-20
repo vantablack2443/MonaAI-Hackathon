@@ -358,7 +358,7 @@ Return ONLY this exact format:
 
 **Risk Score:** Low / Medium / High
 Risk scoring rules — apply strictly:
-- **High** if: any employer cannot be found via web search, OR timeline overlap between full-time study and full-time work, OR certificate issuer is unverifiable
+- **High** if: any employer cannot be found via web search, OR a genuine impossible overlap exists (full-time job + full-time study simultaneously mid-degree, not working-student or final-semester), OR certificate issuer is unverifiable
 - **Medium** if: minor inconsistencies, gaps > 6 months, or one employer is hard to find but others confirm the candidate
 - **Low** only if: all employers verified, timeline is clean, no suspicious signals at all
 
@@ -372,7 +372,7 @@ For each employer listed, note:
 
 ## Timeline Issues
 Only flag actual problems:
-- Student/employment overlap: flag if full-time study and full-time work overlap for the same period (e.g. enrolled in a 3-year degree but simultaneously listed as full-time employee elsewhere — not internships or part-time)
+- Student/employment overlap: flag ONLY if a clearly full-time job (not Working Student / Werkstudent / intern / part-time / student assistant) runs for more than one semester while full-time degree study is ongoing AND the overlap is substantial (more than 6 months mid-degree). Do NOT flag: working student roles (part-time by definition), final-semester job starts (last 1-2 semesters of a degree), or thesis/part-time transitions.
 - Unexplained gaps: flag gaps > 6 months with no explanation
 - Implausible tenure: e.g. 5 years of experience crammed into 2 calendar years
 
