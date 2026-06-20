@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import ChatArea from '@/components/ChatArea';
+import WorkPermitAgent from '@/components/WorkPermitAgent';
 import { Agent } from '@/lib/agents';
 import { Sparkles } from 'lucide-react';
 
@@ -13,7 +14,9 @@ export default function Home() {
       <Sidebar selectedAgent={selectedAgent} onSelectAgent={setSelectedAgent} />
       <main className="flex-1 overflow-hidden" style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(2px)' }}>
         {selectedAgent ? (
-          <ChatArea agent={selectedAgent} />
+          selectedAgent.id === 'work-permit'
+            ? <WorkPermitAgent systemPrompt={selectedAgent.systemPrompt} />
+            : <ChatArea agent={selectedAgent} />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center px-8">
             <div
