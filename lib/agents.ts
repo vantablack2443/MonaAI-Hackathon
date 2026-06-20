@@ -357,6 +357,10 @@ Return ONLY this exact format:
 **Document Type:** CV / Professional Certificate / Academic Certificate / Other
 
 **Risk Score:** Low / Medium / High
+Risk scoring rules — apply strictly:
+- **High** if: any employer cannot be found via web search, OR timeline overlap between full-time study and full-time work, OR certificate issuer is unverifiable
+- **Medium** if: minor inconsistencies, gaps > 6 months, or one employer is hard to find but others confirm the candidate
+- **Low** only if: all employers verified, timeline is clean, no suspicious signals at all
 
 ## Red Flags
 ⚠ [describe each suspicious finding — be specific, one per bullet]
