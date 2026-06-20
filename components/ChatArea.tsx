@@ -125,21 +125,33 @@ export default function ChatArea({ agent }: ChatAreaProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-6 py-4 border-b border-gray-700 bg-gray-900 flex-shrink-0">
-        <h2 className="text-white font-semibold">{agent.name}</h2>
-        <p className="text-gray-400 text-sm">{agent.company} · {agent.tagline}</p>
+      {/* Header */}
+      <div className="px-6 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(20px)' }}>
+        <h2 className="text-white font-semibold text-sm">{agent.name}</h2>
+        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{agent.company} · {agent.tagline}</p>
       </div>
 
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mb-4">
-              <span className="text-2xl">🤖</span>
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 0 40px rgba(99,102,241,0.3)' }}
+            >
+              <span className="text-2xl">✦</span>
             </div>
-            <h3 className="text-white font-semibold text-lg mb-2">{agent.name}</h3>
-            <p className="text-gray-400 text-sm max-w-sm">{agent.tagline} for {agent.company}. How can I help you today?</p>
+            <h3 className="text-white font-semibold text-xl mb-2">{agent.name}</h3>
+            <p className="text-sm max-w-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+              {agent.tagline} for {agent.company}. How can I help you today?
+            </p>
             {agent.supportsFileUpload && (
-              <p className="text-gray-500 text-xs mt-3">You can attach files using the paperclip icon below.</p>
+              <div
+                className="mt-4 px-4 py-2 rounded-full text-xs"
+                style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: 'rgba(165,180,252,0.8)' }}
+              >
+                Attach files using the paperclip icon below
+              </div>
             )}
           </div>
         )}
@@ -147,53 +159,54 @@ export default function ChatArea({ agent }: ChatAreaProps) {
           <MessageBubble key={i} message={msg} />
         ))}
         {loading && (
-          <div className="flex justify-start mb-6">
-            <div className="bg-gray-800 rounded-2xl rounded-tl-sm px-4 py-3">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="flex justify-start mb-5">
+            <div className="rounded-2xl rounded-tl-sm px-4 py-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="flex gap-1.5 items-center">
+                <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: '#818cf8', animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: '#818cf8', animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: '#818cf8', animationDelay: '300ms' }} />
               </div>
             </div>
           </div>
         )}
         {error && (
-          <div className="flex items-center gap-2 bg-red-900/30 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm mb-4">
-            <AlertCircle size={16} className="flex-shrink-0" />
+          <div
+            className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm mb-4"
+            style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#fca5a5' }}
+          >
+            <AlertCircle size={15} className="flex-shrink-0" />
             {error}
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      <div className="px-6 py-4 border-t border-gray-700 bg-gray-900 flex-shrink-0">
+      {/* Input */}
+      <div className="px-6 py-4 flex-shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(20px)' }}>
         {attachedFileName && (
-          <div className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2 mb-3 w-fit">
-            <Paperclip size={14} className="text-blue-400" />
-            <span className="text-sm text-gray-300 truncate max-w-xs">{attachedFileName}</span>
-            <button
-              onClick={() => { setAttachedFileName(null); setAttachedFileContent(null); }}
-              className="text-gray-500 hover:text-white ml-1"
-            >
-              <X size={14} />
+          <div className="flex items-center gap-2 rounded-lg px-3 py-2 mb-3 w-fit" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)' }}>
+            <Paperclip size={13} style={{ color: '#a5b4fc' }} />
+            <span className="text-xs truncate max-w-xs" style={{ color: 'rgba(255,255,255,0.7)' }}>{attachedFileName}</span>
+            <button onClick={() => { setAttachedFileName(null); setAttachedFileContent(null); }} className="ml-1 transition-colors" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <X size={13} />
             </button>
           </div>
         )}
-        <div className="flex items-end gap-3 bg-gray-800 rounded-2xl px-4 py-3 border border-gray-700 focus-within:border-blue-500 transition-colors">
+        <div
+          className="flex items-end gap-3 rounded-2xl px-4 py-3 transition-all duration-200"
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)' }}
+        >
           {agent.supportsFileUpload && (
             <>
-              <input
-                ref={fileRef}
-                type="file"
-                className="hidden"
-                onChange={handleFile}
-                accept=".pdf,.png,.jpg,.jpeg,.webp,.txt"
-              />
+              <input ref={fileRef} type="file" className="hidden" onChange={handleFile} accept=".pdf,.png,.jpg,.jpeg,.webp,.txt" />
               <button
                 onClick={() => fileRef.current?.click()}
-                className="text-gray-500 hover:text-gray-300 flex-shrink-0 pb-0.5 transition-colors"
+                className="flex-shrink-0 pb-0.5 transition-colors"
+                style={{ color: 'rgba(255,255,255,0.3)' }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.7)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.3)'}
               >
-                <Paperclip size={18} />
+                <Paperclip size={17} />
               </button>
             </>
           )}
@@ -203,7 +216,8 @@ export default function ChatArea({ agent }: ChatAreaProps) {
             onKeyDown={handleKeyDown}
             placeholder={`Message ${agent.name}...`}
             rows={1}
-            className="flex-1 bg-transparent text-white placeholder-gray-500 resize-none outline-none text-sm leading-relaxed max-h-32 overflow-y-auto"
+            className="flex-1 resize-none outline-none text-sm leading-relaxed max-h-32 overflow-y-auto"
+            style={{ background: 'transparent', color: 'white' }}
             onInput={(e) => {
               const t = e.target as HTMLTextAreaElement;
               t.style.height = 'auto';
@@ -213,12 +227,13 @@ export default function ChatArea({ agent }: ChatAreaProps) {
           <button
             onClick={sendMessage}
             disabled={loading || (!input.trim() && !attachedFileName)}
-            className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-500 transition-colors"
+            className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-white transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
           >
-            <Send size={14} />
+            <Send size={13} />
           </button>
         </div>
-        <p className="text-gray-600 text-xs text-center mt-2">Enter to send · Shift+Enter for new line</p>
+        <p className="text-xs text-center mt-2" style={{ color: 'rgba(255,255,255,0.2)' }}>Enter to send · Shift+Enter for new line</p>
       </div>
     </div>
   );
