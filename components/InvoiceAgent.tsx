@@ -174,7 +174,20 @@ function InvoiceCard({ result }: { result: InvoiceResult }) {
   );
 }
 
-const SUPPORTED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'text/plain'];
+const SUPPORTED_TYPES = [
+  'application/pdf',
+  'image/png', 'image/jpeg', 'image/webp',
+  'text/plain', 'text/csv', 'application/csv',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+];
+const CONVERT_TYPES = [
+  'text/csv', 'application/csv',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+];
 
 export default function InvoiceAgent({ systemPrompt }: InvoiceAgentProps) {
   const [files, setFiles] = useState<AttachedFile[]>([]);
@@ -221,10 +234,29 @@ export default function InvoiceAgent({ systemPrompt }: InvoiceAgentProps) {
     setError(null);
     setResults(null);
 
-    const filePayloads = files.map(f => {
+    // Convert DOCX/CSV/XLSX to plain text; keep PDF/images as inline data for Gemini
+    const filePayloads: { name: string; mimeType: string; data?: string; text?: string }[] = [];
+    for (const f of files) {
       const match = f.dataUrl.match(/^data:(.+);base64,(.*)$/);
-      return match ? { name: f.name, mimeType: match[1], data: match[2] } : null;
-    }).filter(Boolean);
+      if (!match) continue;
+      const [, mimeType, data] = match;
+      if (CONVERT_TYPES.includes(mimeType) || f.name.endsWith('.csv') || f.name.endsWith('.docx') || f.name.endsWith('.xlsx')) {
+        try {
+          const res = await fetch('/api/convert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: f.name, mimeType, data }),
+          });
+          const json = await res.json();
+          if (json.text) filePayloads.push({ name: f.name, mimeType: 'text/plain', text: json.text });
+          else filePayloads.push({ name: f.name, mimeType, data });
+        } catch {
+          filePayloads.push({ name: f.name, mimeType, data });
+        }
+      } else {
+        filePayloads.push({ name: f.name, mimeType, data });
+      }
+    }
 
     const fileNames = files.length > 0 ? files.map(f => f.name) : ['manual-entry'];
     const userContent = files.length > 0
@@ -289,12 +321,12 @@ export default function InvoiceAgent({ systemPrompt }: InvoiceAgentProps) {
               className="rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-200 mb-4"
               style={{ border: `2px dashed ${dragOver ? '#f47920' : '#d1d5db'}`, background: dragOver ? 'rgba(244,121,32,0.03)' : 'white', padding: '40px 32px' }}
             >
-              <input ref={fileRef} type="file" multiple className="hidden" onChange={handleFileInput} accept=".pdf,.png,.jpg,.jpeg,.webp,.txt" />
+              <input ref={fileRef} type="file" multiple className="hidden" onChange={handleFileInput} accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.docx,.xlsx,.xls" />
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3" style={{ background: dragOver ? 'rgba(244,121,32,0.1)' : '#f3f4f6' }}>
                 <Upload size={22} color={dragOver ? '#f47920' : '#9ca3af'} />
               </div>
               <p className="font-semibold text-gray-700 mb-1 text-sm">Drop invoices here or click to browse</p>
-              <p className="text-xs text-gray-400">PDF, PNG, JPG, WEBP · Max 15 MB per file</p>
+              <p className="text-xs text-gray-400">PDF, PNG, JPG, DOCX, XLSX, CSV · Max 15 MB per file</p>
             </div>
 
             {/* File list */}

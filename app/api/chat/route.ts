@@ -34,8 +34,11 @@ export async function POST(req: NextRequest) {
     const parts: Part[] = [{ text: lastMessage.content }];
 
     if (Array.isArray(files) && files.length > 0) {
-      for (const file of files as { name: string; mimeType: string; data: string }[]) {
-        if (file.mimeType && file.data) {
+      for (const file of files as { name: string; mimeType: string; data?: string; text?: string }[]) {
+        if (file.text) {
+          // Pre-converted text (from DOCX/CSV/XLSX) — send as plain text part
+          parts.push({ text: `\n\n--- File: ${file.name} ---\n${file.text}` });
+        } else if (file.mimeType && file.data) {
           parts.push({ inlineData: { mimeType: file.mimeType, data: file.data } });
         }
       }
