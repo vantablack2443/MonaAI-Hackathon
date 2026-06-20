@@ -45,9 +45,10 @@ For each document reply with ONLY this structure, nothing else:
 **Document:** [filename or "Document N"]
 **Is Work Permit:** Yes / No
 **Status:** Valid / Expired / Not yet active
+**Work Permitted:** Yes / No — is the holder actually allowed to work? Check the remarks/Nebenbestimmungen section. "Erwerbstätigkeit nicht gestattet" or "Employment not permitted" means No.
 **Valid Until:** [date or "Not found"]
 **Days Remaining:** [number or "Expired X days ago"]
-**Work Authorization:** [brief description or "Not specified"]
+**Work Authorization:** [brief description of what is permitted, or "Employment not permitted"]
 **Note:** [one line only if there is something worth flagging, otherwise omit this line]
 
 Do not add explanations, summaries, or any text outside this format.`,

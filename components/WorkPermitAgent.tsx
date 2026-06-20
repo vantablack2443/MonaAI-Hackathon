@@ -6,6 +6,7 @@ interface FileResult {
   name: string;
   isWorkPermit: boolean | null;
   status: 'Valid' | 'Expired' | 'Not yet active' | 'Unknown';
+  workPermitted: boolean | null;
   validUntil: string;
   daysRemaining: string;
   workAuthorization: string;
@@ -37,23 +38,20 @@ function parseResults(text: string, fileNames: string[]): FileResult[] {
 
 function calcConfidence(fields: {
   isWorkPermit: boolean | null;
+  workPermitted: boolean | null;
   status: FileResult['status'];
   validUntil: string;
   daysRemaining: string;
   workAuthorization: string;
 }): number {
   let score = 0;
-  // +25 if document is identified as a work permit
-  if (fields.isWorkPermit === true) score += 25;
-  else if (fields.isWorkPermit === false) score += 10; // identified but not a permit — still extracted info
-  // +25 if expiry date was found
-  if (fields.validUntil && fields.validUntil !== '—' && fields.validUntil !== 'Not found') score += 25;
-  // +20 if status could be determined
-  if (fields.status !== 'Unknown') score += 20;
-  // +15 if days remaining was calculated
+  if (fields.isWorkPermit === true) score += 20;
+  else if (fields.isWorkPermit === false) score += 10;
+  if (fields.workPermitted !== null) score += 20; // +20 if work permission was explicitly determined
+  if (fields.validUntil && fields.validUntil !== '—' && fields.validUntil !== 'Not found') score += 20;
+  if (fields.status !== 'Unknown') score += 15;
   if (fields.daysRemaining && fields.daysRemaining !== '—') score += 15;
-  // +15 if work authorization scope was extracted
-  if (fields.workAuthorization && fields.workAuthorization !== '—' && fields.workAuthorization !== 'Not specified') score += 15;
+  if (fields.workAuthorization && fields.workAuthorization !== '—' && fields.workAuthorization !== 'Not specified') score += 10;
   return Math.min(score, 100);
 }
 
@@ -65,6 +63,9 @@ function parseBlock(block: string, fallbackName: string): FileResult {
 
   const isWorkPermitStr = get('Is Work Permit').toLowerCase();
   const isWorkPermit = isWorkPermitStr.startsWith('yes') ? true : isWorkPermitStr.startsWith('no') ? false : null;
+
+  const workPermittedStr = get('Work Permitted').toLowerCase();
+  const workPermitted = workPermittedStr.startsWith('yes') ? true : workPermittedStr.startsWith('no') ? false : null;
 
   const statusStr = get('Status').toLowerCase();
   const status: FileResult['status'] =
@@ -83,24 +84,28 @@ function parseBlock(block: string, fallbackName: string): FileResult {
   return {
     name: displayName,
     isWorkPermit,
+    workPermitted,
     status,
     validUntil,
     daysRemaining,
     workAuthorization,
-    confidence: calcConfidence({ isWorkPermit, status, validUntil, daysRemaining, workAuthorization }),
+    confidence: calcConfidence({ isWorkPermit, workPermitted, status, validUntil, daysRemaining, workAuthorization }),
     note: get('Note') || undefined,
     raw: block,
   };
 }
 
 function ResultCard({ result }: { result: FileResult }) {
-  const isValid = result.status === 'Valid' && result.isWorkPermit;
+  // A permit is only truly "usable" if it's valid AND work is permitted
+  const isUsable = result.status === 'Valid' && result.isWorkPermit && result.workPermitted !== false;
   const isExpired = result.status === 'Expired';
+  const workBlocked = result.status === 'Valid' && result.workPermitted === false;
   const notYet = result.status === 'Not yet active';
 
-  const statusColor = isValid ? '#16a34a' : isExpired ? '#dc2626' : notYet ? '#d97706' : '#6b7280';
-  const statusBg = isValid ? 'rgba(22,163,74,0.08)' : isExpired ? 'rgba(220,38,38,0.08)' : 'rgba(217,119,6,0.08)';
-  const StatusIcon = isValid ? ShieldCheck : isExpired ? ShieldX : Clock;
+  const statusLabel = isUsable ? 'Valid' : workBlocked ? 'Work Not Permitted' : isExpired ? 'Expired' : notYet ? 'Not yet active' : 'Unknown';
+  const statusColor = isUsable ? '#16a34a' : (workBlocked || isExpired) ? '#dc2626' : notYet ? '#d97706' : '#6b7280';
+  const statusBg = isUsable ? 'rgba(22,163,74,0.08)' : (workBlocked || isExpired) ? 'rgba(220,38,38,0.08)' : 'rgba(217,119,6,0.08)';
+  const StatusIcon = isUsable ? ShieldCheck : (workBlocked || isExpired) ? ShieldX : Clock;
 
   return (
     <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #e5e7eb', background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
@@ -112,7 +117,7 @@ function ResultCard({ result }: { result: FileResult }) {
         </div>
         <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold" style={{ background: statusBg, color: statusColor, border: `1px solid ${statusColor}33` }}>
           <StatusIcon size={12} />
-          {result.status}
+          {statusLabel}
         </div>
       </div>
 
@@ -123,6 +128,12 @@ function ResultCard({ result }: { result: FileResult }) {
             <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#9ca3af' }}>Is Work Permit</p>
             <p className="text-sm font-semibold" style={{ color: result.isWorkPermit === true ? '#16a34a' : result.isWorkPermit === false ? '#dc2626' : '#6b7280' }}>
               {result.isWorkPermit === true ? '✓ Yes' : result.isWorkPermit === false ? '✗ No' : '— Unknown'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#9ca3af' }}>Work Permitted</p>
+            <p className="text-sm font-semibold" style={{ color: result.workPermitted === true ? '#16a34a' : result.workPermitted === false ? '#dc2626' : '#6b7280' }}>
+              {result.workPermitted === true ? '✓ Yes' : result.workPermitted === false ? '✗ No' : '— Unknown'}
             </p>
           </div>
           <div>
