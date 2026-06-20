@@ -7,6 +7,7 @@ import InvoiceAgent from '@/components/InvoiceAgent';
 import ShiftAgent from '@/components/ShiftAgent';
 import InterviewAgent from '@/components/InterviewAgent';
 import CVFraudAgent from '@/components/CVFraudAgent';
+import SecureEmailAgent from '@/components/SecureEmailAgent';
 import DrTheissAgent from '@/components/DrTheissAgent';
 import { agents, Agent } from '@/lib/agents';
 import { Sparkles } from 'lucide-react';
@@ -29,6 +30,8 @@ export default function Home() {
             ? <InterviewAgent systemPrompt={selectedAgent.systemPrompt} />
             : selectedAgent.id === 'cv-fraud'
             ? <CVFraudAgent systemPrompt={selectedAgent.systemPrompt} />
+            : selectedAgent.id === 'secure-email'
+            ? <SecureEmailAgent systemPrompt={selectedAgent.systemPrompt} />
             : selectedAgent.group
             ? <DrTheissAgent key={selectedAgent.id} groupAgents={agents.filter(a => a.group === selectedAgent.group)} initialAgentId={selectedAgent.id} />
             : <ChatArea agent={selectedAgent} />
