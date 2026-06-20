@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     }
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -21,8 +21,21 @@ export async function POST(req: NextRequest) {
     );
 
     if (!res.ok) {
-      const err = await res.text();
-      return NextResponse.json({ error: err }, { status: res.status });
+      const errText = await res.text();
+      // If model still not found, surface available image-capable models to help debugging
+      if (res.status === 404) {
+        const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        const listData = await listRes.json();
+        const imageModels = (listData.models || [])
+          .filter((m: { name: string; supportedGenerationMethods?: string[] }) =>
+            m.name.toLowerCase().includes('image') || m.name.toLowerCase().includes('imagen')
+          )
+          .map((m: { name: string }) => m.name);
+        return NextResponse.json({
+          error: `Model not found. Image-capable models on your key: ${imageModels.length > 0 ? imageModels.join(', ') : 'none found — check API tier'}`,
+        }, { status: 404 });
+      }
+      return NextResponse.json({ error: errText }, { status: res.status });
     }
 
     const data = await res.json();
