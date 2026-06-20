@@ -131,10 +131,16 @@ function ResultCard({ result }: { result: FileResult }) {
             </p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#9ca3af' }}>Work Permitted</p>
-            <p className="text-sm font-semibold" style={{ color: result.workPermitted === true ? '#16a34a' : result.workPermitted === false ? '#dc2626' : '#6b7280' }}>
-              {result.workPermitted === true ? '✓ Yes' : result.workPermitted === false ? '✗ No' : '— Unknown'}
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#9ca3af' }}>Work Permitted Now</p>
+            {(() => {
+              // Work is only currently permitted if: valid dates + permit allows work
+              const currentlyPermitted = result.status === 'Valid' && result.workPermitted === true;
+              const currentlyBlocked = result.status === 'Valid' && result.workPermitted === false;
+              const notCurrently = isExpired || notYet;
+              const color = currentlyPermitted ? '#16a34a' : (currentlyBlocked || notCurrently) ? '#dc2626' : '#6b7280';
+              const label = currentlyPermitted ? '✓ Yes' : notCurrently ? '✗ No (permit inactive)' : currentlyBlocked ? '✗ No (not authorized)' : '— Unknown';
+              return <p className="text-sm font-semibold" style={{ color }}>{label}</p>;
+            })()}
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: '#9ca3af' }}>Valid Until</p>
