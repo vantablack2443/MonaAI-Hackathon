@@ -24,14 +24,14 @@ interface ShiftAgentProps {
   systemPrompt: string;
 }
 
-// Pre-populated schedule
+// Pre-populated schedule — real data from hospital roster
 const SCHEDULE = [
-  { ward: 'Kardiologie',  date: '20.06.2026', time: '22:00–06:00', role: 'Krankenpfleger/in', status: 'gap' },
-  { ward: 'Intensivstation', date: '21.06.2026', time: '06:00–14:00', role: 'Krankenpfleger/in (Intensiv)', status: 'covered' },
-  { ward: 'Chirurgie',    date: '21.06.2026', time: '14:00–22:00', role: 'Krankenpfleger/in', status: 'covered' },
-  { ward: 'Neurologie',   date: '22.06.2026', time: '22:00–06:00', role: 'Krankenpfleger/in', status: 'covered' },
-  { ward: 'Notaufnahme',  date: '22.06.2026', time: '06:00–14:00', role: 'Notärztin/Notarzt', status: 'covered' },
-  { ward: 'Anästhesie',   date: '23.06.2026', time: '14:00–22:00', role: 'Anästhesist/in', status: 'covered' },
+  { ward: 'ICU', date: 'Sat 06/20', time: '19:00–07:00', role: 'Registered Nurse (BLS+ACLS)', status: 'gap', employee: 'Felix Haddad (HOSP-1059)', reason: 'Called in sick' },
+  { ward: 'ICU', date: 'Sat 06/20', time: '07:00–19:00', role: 'Registered Nurse', status: 'covered', employee: 'Caleb Marino' },
+  { ward: 'Cardiology', date: 'Sat 06/20', time: '07:00–19:00', role: 'Registered Nurse', status: 'covered', employee: 'Isla Nguyen' },
+  { ward: 'Surgery', date: 'Sat 06/20', time: '07:00–19:00', role: 'Registered Nurse', status: 'covered', employee: 'Mateo Holm' },
+  { ward: 'Emergency', date: 'Sat 06/20', time: '07:00–19:00', role: 'Registered Nurse', status: 'covered', employee: 'Aisha Hernandez' },
+  { ward: 'General Med', date: 'Sun 06/21', time: '07:00–19:00', role: 'Registered Nurse', status: 'covered', employee: 'Nina Sørensen' },
 ];
 
 const URGENCY_STYLE: Record<string, { color: string; bg: string; border: string }> = {
@@ -168,7 +168,9 @@ export default function ShiftAgent({ systemPrompt }: ShiftAgentProps) {
 
   const handleGapClick = (shift: typeof SCHEDULE[0]) => {
     setSelectedShift(shift);
-    const msg = `SHIFT GAP REPORTED: Ward ${shift.ward}, Date ${shift.date}, Time ${shift.time}, Role needed: ${shift.role}. Please find available qualified staff and prepare outreach messages.`;
+    const reason = 'reason' in shift ? ` Reason: ${shift.reason}.` : '';
+    const employee = 'employee' in shift ? ` Originally assigned: ${shift.employee}.` : '';
+    const msg = `SHIFT GAP REPORTED: Department/Ward: ${shift.ward}, Date: ${shift.date}, Time: ${shift.time}, Role needed: ${shift.role}.${employee}${reason} Please analyze the roster and weekly schedule, find the top 3 eligible qualified staff available for this shift, and prepare outreach messages.`;
     setInput(msg);
     submit(msg);
   };
@@ -229,6 +231,12 @@ export default function ShiftAgent({ systemPrompt }: ShiftAgentProps) {
                 </div>
                 <p className="text-xs text-gray-500">{s.date}</p>
                 <p className="text-xs text-gray-400">{s.time} · {s.role}</p>
+                {'employee' in s && s.status === 'gap' && (
+                  <p className="text-xs mt-1" style={{ color: '#dc2626' }}>{'reason' in s ? s.reason : ''}</p>
+                )}
+                {'employee' in s && s.status === 'covered' && (
+                  <p className="text-xs mt-0.5 text-gray-400">{s.employee}</p>
+                )}
               </button>
             ))}
           </div>

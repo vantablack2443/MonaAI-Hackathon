@@ -39,38 +39,242 @@ If multiple invoices are uploaded, repeat the block for each, prefixed with **In
     tagline: 'HR scheduling agent',
     icon: 'Calendar',
     supportsFileUpload: false,
-    systemPrompt: `You are a shift replacement scheduling agent for Universitätsklinikum des Saarlandes (UKS). You have access to the current staff schedule and roster.
+    systemPrompt: `You are a shift replacement scheduling agent for Universitätsklinikum des Saarlandes (UKS). You have access to the real staff roster and weekly schedule below.
 
-When HR reports a shift gap, analyze the situation and return ONLY this structured format:
+Shift coding: D = Day shift 07:00–19:00, N = Night shift 19:00–07:00, O = Off.
 
-**Shift:** [Ward — Date — Time, e.g. "Kardiologie — 21.06.2026 — 22:00–06:00"]
-**Role Needed:** [e.g. Krankenpfleger/in, Arzt/Ärztin, Anästhesist/in]
+ELIGIBILITY RULES (apply strictly):
+1. Role match: For ICU gaps → Registered Nurse or Charge Nurse only. For ward/surgery gaps → any RN, Charge Nurse, or relevant specialist.
+2. Certifications: ICU gaps require BLS + ACLS. Emergency gaps require BLS + ACLS + TNCC. Maternity gaps require BLS + NRP.
+3. Status must be Active (not On Leave).
+4. Must be scheduled O (Off) on the gap date in Weekly_Schedule.
+5. Rest check: If lastOut = gap date 07:00 they are finishing a night shift — too tired for same-day night shift. If lastIn shows "— on shift —" they are currently working.
+6. Hours cap: Scheduled Hrs (next 7d) + 12 must not exceed Max Hrs/Week.
+7. Prefer same-department staff first, then cross-trained.
+8. Note overtime preference (Overtime OK = Yes/No) and persona notes when ranking.
+
+When HR reports a shift gap, analyze the situation using the data below and return ONLY this structured format:
+
+**Shift:** [Department/Ward — Date — Time]
+**Role Needed:** [Registered Nurse / Charge Nurse / etc.]
 **Urgency:** Critical / High / Medium
 **Gap Reason:** [one line]
 
 **Available Staff:**
-Staff 1 — [Full Name] — [Role] — [Phone] — [Reason available, e.g. "day off, qualified for ward"]
+Staff 1 — [Full Name] — [Role] — [Phone] — [Reason available, e.g. "ICU RN, BLS+ACLS, off today, 24/48 hrs used"]
 Staff 2 — [Full Name] — [Role] — [Phone] — [Reason available]
 Staff 3 — [Full Name] — [Role] — [Phone] — [Reason available]
 
 **Outreach Message:**
-[A short, professional German SMS/message to send to each staff member. Include the shift details, ward, and a request to confirm availability. Sign off as "UKS HR-Leitstelle".]
+[A short professional SMS in English to send to each candidate. Include shift details, ward, date/time, and request to confirm. Sign off as "UKS HR Dispatch".]
 
 **Recommended Action:** [One sentence — who to contact first and why]
 
-Use the staff roster below to find available qualified personnel. Today's date and the schedule context will be provided.
+--- STAFF ROSTER (100 employees) ---
+Employee ID,First Name,Last Name,Role,Department,Certifications,Contract,Max Hrs/Week,Shift Preference,Overtime OK,Status,Persona / Notes,Last Clock In,Last Clock Out,Phone
+HOSP-1001,Isla,Nguyen,Registered Nurse,Cardiology,"BLS, ACLS",Full-time,48,Day,No,Active,Open to last-minute cover,Sat 06/20 07:00,— on shift —,+49 151 130 2535
+HOSP-1002,Tariq,Bianchi,Certified Nursing Assistant,General Medicine,BLS,Full-time,48,Flexible,No,Active,"Commutes far, dislikes back-to-backs",Wed 06/17 07:00,Wed 06/17 19:00,+49 168 384 1106
+HOSP-1003,Hannah,Reyes,Registered Nurse,Maternity,"BLS, NRP",Full-time,48,Flexible,Yes,Active,"Has young children, prefers day shifts",Tue 06/16 07:00,Tue 06/16 19:00,+49 161 967 6635
+HOSP-1004,Hassan,Novak,Certified Nursing Assistant,Emergency,BLS,Full-time,48,Flexible,Yes,Active,Calm under pressure in codes,Thu 06/18 07:00,Thu 06/18 19:00,+49 168 296 2139
+HOSP-1005,Ethan,Wagner,Physician,Surgery,"BLS, ACLS",Per-diem,36,Flexible,No,Active,"Commutes far, dislikes back-to-backs",Sat 06/20 07:00,— on shift —,+49 170 954 6977
+HOSP-1006,Hannah,Kim,Registered Nurse,Oncology,"BLS, OCN",Full-time,48,Flexible,No,Active,Working toward charge-nurse role,Fri 06/19 07:00,Fri 06/19 19:00,+49 167 846 5010
+HOSP-1007,Hannah,Lindgren,Registered Nurse,Maternity,"BLS, NRP",Per-diem,36,Night,Yes,Active,"Senior staff, mentors new grads",Thu 06/18 19:00,Fri 06/19 07:00,+49 157 941 1525
+HOSP-1008,Sara,Weber,Registered Nurse,Cardiology,"BLS, ACLS",Per-diem,36,Night,No,Active,"Union rep, watches hours closely",Tue 06/16 19:00,Wed 06/17 07:00,+49 162 758 8517
+HOSP-1009,Nora,Novak,Registered Nurse,Pediatrics,"BLS, PALS",Full-time,48,Day,No,Active,Prefers predictable schedules,Fri 06/19 07:00,Fri 06/19 19:00,+49 161 324 3266
+HOSP-1010,Caleb,Marino,Certified Nursing Assistant,ICU,BLS,Per-diem,36,Day,Yes,Active,"New grad, still onboarding",Sat 06/20 07:00,— on shift —,+49 162 490 8668
+HOSP-1011,Reza,Novak,Physician,General Medicine,"BLS, ACLS",Full-time,48,Flexible,No,Active,Avoids overtime when possible,Fri 06/19 07:00,Fri 06/19 19:00,+49 174 756 6573
+HOSP-1012,Isla,Petrov,Registered Nurse,Maternity,"BLS, NRP",Full-time,48,Flexible,No,On Leave,Working toward charge-nurse role,Wed 06/17 07:00,Wed 06/17 19:00,+49 166 208 5889
+HOSP-1013,Dunia,Esposito,Registered Nurse,Surgery,"BLS, ACLS",Part-time,30,Night,No,Active,"Reliable, frequently picks up extra shifts",Wed 06/17 19:00,Thu 06/18 07:00,+49 169 431 9005
+HOSP-1014,Sofia,Müller,Physician,Oncology,"BLS, ACLS",Part-time,30,Day,Yes,Active,"New grad, still onboarding",Sat 06/20 07:00,— on shift —,+49 152 849 8962
+HOSP-1015,Emma,Holm,Physician,General Medicine,"BLS, ACLS",Full-time,48,Night,Yes,Active,Open to last-minute cover,Tue 06/16 19:00,Wed 06/17 07:00,+49 156 652 4295
+HOSP-1016,Niko,Weber,Registered Nurse,Oncology,"BLS, OCN",Full-time,48,Day,Yes,Active,"Quiet, dependable, rarely calls out",Sat 06/20 07:00,— on shift —,+49 157 702 4608
+HOSP-1017,Aisha,Hernandez,Registered Nurse,Emergency,"BLS, ACLS, TNCC",Per-diem,36,Flexible,Yes,Active,"Union rep, watches hours closely",Sat 06/20 07:00,— on shift —,+49 156 652 3167
+HOSP-1018,Samir,Vasquez,Radiologic Technologist,Radiology,ARRT,Full-time,48,Day,Yes,Active,Calm under pressure in codes,Tue 06/16 07:00,Tue 06/16 19:00,+49 163 520 8651
+HOSP-1019,Zara,Dlamini,Registered Nurse,ICU,"BLS, ACLS",Part-time,30,Flexible,Yes,Active,"Quiet, dependable, rarely calls out",Thu 06/18 07:00,Thu 06/18 19:00,+49 164 243 7912
+HOSP-1020,Marco,Costa,Radiologic Technologist,Radiology,ARRT,Per-diem,36,Night,No,Active,"Senior staff, mentors new grads",Fri 06/19 19:00,Sat 06/20 07:00,+49 170 653 1241
+HOSP-1021,Mateo,Holm,Registered Nurse,Surgery,"BLS, ACLS",Full-time,48,Day,Yes,Active,Prefers predictable schedules,Sat 06/20 07:00,— on shift —,+49 150 499 5345
+HOSP-1022,Greta,Petrov,Certified Nursing Assistant,Maternity,BLS,Part-time,30,Flexible,No,Active,"Part-time by choice, studying part-time",Fri 06/19 07:00,Fri 06/19 19:00,+49 159 322 1958
+HOSP-1023,Nina,Sørensen,Registered Nurse,General Medicine,BLS,Full-time,48,Day,Yes,Active,Cross-trained on two units,Thu 06/18 07:00,Thu 06/18 19:00,+49 155 158 9320
+HOSP-1024,Olivia,Dubois,Certified Nursing Assistant,ICU,BLS,Part-time,30,Day,Yes,Active,"Float-pool veteran, flexible across units",Tue 06/16 07:00,Tue 06/16 19:00,+49 168 708 1651
+HOSP-1025,Emil,Kowalski,Certified Nursing Assistant,Maternity,BLS,Full-time,48,Day,Yes,Active,"Per-diem, very flexible",Sat 06/20 07:00,— on shift —,+49 157 371 7484
+HOSP-1026,Layla,Wagner,Registered Nurse,Cardiology,"BLS, ACLS",Per-diem,36,Flexible,Yes,Active,"Has young children, prefers day shifts",Sat 06/20 07:00,— on shift —,+49 152 650 4492
+HOSP-1027,Dunia,Novak,Nurse Practitioner,Pediatrics,"BLS, PALS",Per-diem,36,Flexible,Yes,Active,"Quiet, dependable, rarely calls out",Tue 06/16 07:00,Tue 06/16 19:00,+49 172 409 9666
+HOSP-1028,Liam,Wagner,Registered Nurse,General Medicine,BLS,Part-time,30,Flexible,Yes,Active,"Has young children, prefers day shifts",Wed 06/17 07:00,Wed 06/17 19:00,+49 173 666 3546
+HOSP-1029,Freya,Petrov,Pharmacist,Pharmacy,PharmD,Full-time,48,Night,No,Active,Avoids overtime when possible,Wed 06/17 19:00,Thu 06/18 07:00,+49 178 966 1832
+HOSP-1030,Mateo,Janssen,Physician,Maternity,"BLS, ACLS",Full-time,48,Day,Yes,On Leave,Working toward charge-nurse role,Tue 06/16 07:00,Tue 06/16 19:00,+49 173 552 8007
+HOSP-1031,Otto,Okafor,Registered Nurse,ICU,"BLS, ACLS",Per-diem,36,Flexible,Yes,Active,"Quiet, dependable, rarely calls out",Wed 06/17 07:00,Wed 06/17 19:00,+49 154 540 3088
+HOSP-1032,Ethan,Schmidt,Nurse Practitioner,Oncology,"BLS, OCN",Part-time,30,Flexible,No,Active,"Float-pool veteran, flexible across units",Fri 06/19 19:00,Sat 06/20 07:00,+49 171 205 6794
+HOSP-1033,Otto,Romano,Pharmacy Technician,Pharmacy,CPhT,Per-diem,36,Day,Yes,Active,Working toward charge-nurse role,Fri 06/19 07:00,Fri 06/19 19:00,+49 178 522 1406
+HOSP-1034,Elena,Sørensen,Physician,Oncology,"BLS, ACLS",Full-time,48,Night,No,Active,Working toward charge-nurse role,Thu 06/18 19:00,Fri 06/19 07:00,+49 175 818 2771
+HOSP-1035,Lucia,Rossi,Radiologic Technologist,Radiology,ARRT,Part-time,30,Night,Yes,Active,"Float-pool veteran, flexible across units",Fri 06/19 19:00,Sat 06/20 07:00,+49 157 124 4164
+HOSP-1036,Bruno,Ivanov,Physician,Cardiology,"BLS, ACLS",Per-diem,36,Day,No,Active,"Quiet, dependable, rarely calls out",Fri 06/19 07:00,Fri 06/19 19:00,+49 160 128 2889
+HOSP-1037,Jonas,Dubois,Pharmacy Technician,Pharmacy,CPhT,Full-time,48,Day,Yes,Active,"Per-diem, very flexible",Sat 06/20 07:00,— on shift —,+49 163 720 9379
+HOSP-1038,Isla,Adeyemi,Pharmacist,Pharmacy,PharmD,Full-time,48,Night,Yes,Active,"Part-time by choice, studying part-time",Wed 06/17 19:00,Thu 06/18 07:00,+49 161 541 2146
+HOSP-1039,Ines,Khan,Certified Nursing Assistant,Oncology,BLS,Full-time,48,Flexible,Yes,Active,"Per-diem, very flexible",Fri 06/19 19:00,Sat 06/20 07:00,+49 162 813 5844
+HOSP-1040,Wren,Silva,Registered Nurse,Surgery,"BLS, ACLS",Per-diem,36,Night,No,Active,Recently returned from parental leave,Tue 06/16 19:00,Wed 06/17 07:00,+49 162 661 1006
+HOSP-1041,Amara,Petrov,Registered Nurse,Surgery,"BLS, ACLS",Full-time,48,Night,Yes,Active,"Part-time by choice, studying part-time",Fri 06/19 19:00,Sat 06/20 07:00,+49 166 584 3780
+HOSP-1042,Olivia,Petrov,Certified Nursing Assistant,General Medicine,BLS,Full-time,48,Day,No,Active,Recently returned from parental leave,Sat 06/20 07:00,— on shift —,+49 157 925 4262
+HOSP-1043,Nora,Nguyen,Registered Nurse,Emergency,"BLS, ACLS, TNCC",Full-time,48,Flexible,Yes,Active,"Part-time by choice, studying part-time",Thu 06/18 07:00,Thu 06/18 19:00,+49 172 813 7291
+HOSP-1044,Pavel,Weber,Registered Nurse,Surgery,"BLS, ACLS",Part-time,30,Flexible,No,Active,Open to last-minute cover,Sat 06/20 07:00,— on shift —,+49 157 280 9486
+HOSP-1045,Malik,Patel,Registered Nurse,General Medicine,BLS,Part-time,30,Night,No,Active,"Quiet, dependable, rarely calls out",Thu 06/18 19:00,Fri 06/19 07:00,+49 169 424 8251
+HOSP-1046,Lara,Kovač,Registered Nurse,General Medicine,BLS,Per-diem,36,Night,Yes,Active,"Commutes far, dislikes back-to-backs",Thu 06/18 19:00,Fri 06/19 07:00,+49 158 869 5050
+HOSP-1047,Ravi,Antov,Registered Nurse,General Medicine,BLS,Full-time,48,Night,No,Active,"Per-diem, very flexible",Fri 06/19 19:00,Sat 06/20 07:00,+49 160 653 2320
+HOSP-1048,Finn,Larsson,Registered Nurse,Surgery,"BLS, ACLS",Full-time,48,Day,Yes,Active,"Commutes far, dislikes back-to-backs",Sat 06/20 07:00,— on shift —,+49 163 163 4388
+HOSP-1049,Aaron,Adeyemi,Pharmacy Technician,Pharmacy,CPhT,Full-time,48,Flexible,No,Active,Calm under pressure in codes,Wed 06/17 07:00,Wed 06/17 19:00,+49 159 871 7389
+HOSP-1050,Aaron,Park,Physician,General Medicine,"BLS, ACLS",Per-diem,36,Night,Yes,Active,Prefers predictable schedules,Wed 06/17 19:00,Thu 06/18 07:00,+49 160 784 7624
+HOSP-1051,Kai,Lindgren,Respiratory Therapist,Pediatrics,"BLS, ACLS, RRT",Full-time,48,Flexible,No,Active,"New grad, still onboarding",Fri 06/19 19:00,Sat 06/20 07:00,+49 170 538 3223
+HOSP-1052,Malik,Dubois,Registered Nurse,Emergency,"BLS, ACLS, TNCC",Full-time,48,Night,Yes,Active,Avoids overtime when possible,Fri 06/19 19:00,Sat 06/20 07:00,+49 174 951 7906
+HOSP-1053,Anya,Kowalski,Radiologic Technologist,Radiology,ARRT,Full-time,48,Flexible,Yes,Active,"Senior staff, mentors new grads",Fri 06/19 19:00,Sat 06/20 07:00,+49 174 131 5051
+HOSP-1054,Sam,Nguyen,Pharmacist,Pharmacy,PharmD,Full-time,48,Night,No,Active,Avoids overtime when possible,Fri 06/19 19:00,Sat 06/20 07:00,+49 174 477 3749
+HOSP-1055,Hassan,Esposito,Physician,ICU,"BLS, ACLS",Full-time,48,Day,No,On Leave,Prefers predictable schedules,Thu 06/18 07:00,Thu 06/18 19:00,+49 162 832 4249
+HOSP-1056,Omar,Bakker,Registered Nurse,Surgery,"BLS, ACLS",Part-time,30,Flexible,No,Active,"Senior staff, mentors new grads",Fri 06/19 19:00,Sat 06/20 07:00,+49 161 645 8018
+HOSP-1057,Oskar,Hernandez,Certified Nursing Assistant,General Medicine,BLS,Full-time,48,Night,Yes,Active,Calm under pressure in codes,Thu 06/18 19:00,Fri 06/19 07:00,+49 170 948 8532
+HOSP-1058,Diego,Bauer,Certified Nursing Assistant,Pediatrics,BLS,Per-diem,36,Day,No,Active,"Union rep, watches hours closely",Sat 06/20 07:00,— on shift —,+49 164 546 5397
+HOSP-1059,Felix,Haddad,Registered Nurse,ICU,"BLS, ACLS",Full-time,48,Flexible,No,Active,"Per-diem, very flexible",Wed 06/17 07:00,Wed 06/17 19:00,+49 150 606 6325
+HOSP-1060,Marco,Marino,Registered Nurse,Surgery,"BLS, ACLS",Full-time,48,Day,No,Active,"Quiet, dependable, rarely calls out",Fri 06/19 07:00,Fri 06/19 19:00,+49 150 629 4130
+HOSP-1061,Olivia,Haddad,Registered Nurse,Maternity,"BLS, NRP",Part-time,30,Night,No,Active,"Reliable, frequently picks up extra shifts",Fri 06/19 19:00,Sat 06/20 07:00,+49 152 401 4630
+HOSP-1062,Bruno,Reyes,Registered Nurse,Surgery,"BLS, ACLS",Full-time,48,Night,Yes,Active,"Quiet, dependable, rarely calls out",Fri 06/19 19:00,Sat 06/20 07:00,+49 160 460 8434
+HOSP-1063,Freya,Schmidt,Registered Nurse,Cardiology,"BLS, ACLS",Part-time,30,Day,No,On Leave,Working toward charge-nurse role,Wed 06/17 07:00,Wed 06/17 19:00,+49 156 321 8933
+HOSP-1064,Ravi,Kovač,Pharmacy Technician,Pharmacy,CPhT,Full-time,48,Day,Yes,Active,"Float-pool veteran, flexible across units",Thu 06/18 07:00,Thu 06/18 19:00,+49 161 283 5952
+HOSP-1065,Liam,Lefebvre,Registered Nurse,General Medicine,BLS,Full-time,48,Day,Yes,On Leave,"Union rep, watches hours closely",Wed 06/17 07:00,Wed 06/17 19:00,+49 153 993 1200
+HOSP-1066,Samir,Petrov,Radiologic Technologist,Radiology,ARRT,Full-time,48,Flexible,Yes,Active,"Has young children, prefers day shifts",Sat 06/20 07:00,— on shift —,+49 176 166 7565
+HOSP-1067,Aila,Hernandez,Pharmacy Technician,Pharmacy,CPhT,Full-time,48,Day,No,Active,"Float-pool veteran, flexible across units",Wed 06/17 07:00,Wed 06/17 19:00,+49 153 671 7818
+HOSP-1068,Emil,Bianchi,Registered Nurse,General Medicine,BLS,Per-diem,36,Day,No,Active,"Senior staff, mentors new grads",Sat 06/20 07:00,— on shift —,+49 169 857 2625
+HOSP-1069,Chloe,Janssen,Registered Nurse,Surgery,"BLS, ACLS",Full-time,48,Day,No,Active,Open to last-minute cover,Sat 06/20 07:00,— on shift —,+49 164 805 8699
+HOSP-1070,Theo,Rossi,Registered Nurse,Surgery,"BLS, ACLS",Full-time,48,Flexible,Yes,Active,Avoids overtime when possible,Fri 06/19 19:00,Sat 06/20 07:00,+49 175 910 4241
+HOSP-1071,Yara,Müller,Registered Nurse,General Medicine,BLS,Full-time,48,Day,Yes,Active,Recently returned from parental leave,Sat 06/20 07:00,— on shift —,+49 169 866 5728
+HOSP-1072,Selin,Müller,Radiologic Technologist,Radiology,ARRT,Part-time,30,Flexible,Yes,Active,"New grad, still onboarding",Wed 06/17 07:00,Wed 06/17 19:00,+49 169 140 8078
+HOSP-1073,Felix,Esposito,Registered Nurse,Cardiology,"BLS, ACLS",Full-time,48,Night,No,Active,"Reliable, frequently picks up extra shifts",Wed 06/17 19:00,Thu 06/18 07:00,+49 174 788 5415
+HOSP-1074,Samir,Rossi,Registered Nurse,Pediatrics,"BLS, PALS",Part-time,30,Flexible,Yes,Active,"Union rep, watches hours closely",Tue 06/16 07:00,Tue 06/16 19:00,+49 152 581 6700
+HOSP-1075,Carmen,Ivanov,Certified Nursing Assistant,Oncology,BLS,Per-diem,36,Day,No,Active,Prefers predictable schedules,Tue 06/16 07:00,Tue 06/16 19:00,+49 176 878 1601
+HOSP-1076,Greta,Kowalski,Registered Nurse,Oncology,"BLS, OCN",Full-time,48,Flexible,No,Active,"Reliable, frequently picks up extra shifts",Sat 06/20 07:00,— on shift —,+49 171 990 9889
+HOSP-1077,Malik,Romano,Registered Nurse,Emergency,"BLS, ACLS, TNCC",Full-time,48,Flexible,No,Active,"Part-time by choice, studying part-time",Fri 06/19 07:00,Fri 06/19 19:00,+49 158 662 3146
+HOSP-1078,Lena,Sato,Radiologic Technologist,Radiology,ARRT,Per-diem,36,Night,Yes,Active,"Quiet, dependable, rarely calls out",Tue 06/16 19:00,Wed 06/17 07:00,+49 150 665 7684
+HOSP-1079,Mateo,Bianchi,Registered Nurse,ICU,"BLS, ACLS",Full-time,48,Flexible,Yes,Active,Cross-trained on two units,Thu 06/18 07:00,Thu 06/18 19:00,+49 172 379 7807
+HOSP-1080,Janek,Abebe,Registered Nurse,Surgery,"BLS, ACLS",Full-time,48,Day,No,Active,"Night-owl, happy on nights",Wed 06/17 07:00,Wed 06/17 19:00,+49 177 171 5526
+HOSP-1081,Aaron,Ivanov,Registered Nurse,General Medicine,BLS,Full-time,48,Flexible,No,Active,"Union rep, watches hours closely",Fri 06/19 19:00,Sat 06/20 07:00,+49 177 252 8316
+HOSP-1082,Mei,Abebe,Registered Nurse,Oncology,"BLS, OCN",Part-time,30,Day,No,Active,"Float-pool veteran, flexible across units",Fri 06/19 07:00,Fri 06/19 19:00,+49 168 492 4826
+HOSP-1083,Carmen,Rossi,Certified Nursing Assistant,Oncology,BLS,Part-time,30,Flexible,Yes,Active,"Night-owl, happy on nights",Fri 06/19 07:00,Fri 06/19 19:00,+49 165 137 3068
+HOSP-1084,Dunia,Bakker,Physician,Oncology,"BLS, ACLS",Per-diem,36,Night,Yes,Active,"Night-owl, happy on nights",Tue 06/16 19:00,Wed 06/17 07:00,+49 163 991 3529
+HOSP-1085,Omar,Abebe,Registered Nurse,Cardiology,"BLS, ACLS",Part-time,30,Night,No,Active,"Quiet, dependable, rarely calls out",Fri 06/19 19:00,Sat 06/20 07:00,+49 162 424 8994
+HOSP-1086,Tomas,Rossi,Pharmacist,Pharmacy,PharmD,Part-time,30,Flexible,No,Active,Open to last-minute cover,Wed 06/17 07:00,Wed 06/17 19:00,+49 153 878 2646
+HOSP-1087,Selin,Kovač,Nurse Practitioner,Cardiology,"BLS, ACLS",Full-time,48,Flexible,Yes,Active,"Night-owl, happy on nights",Fri 06/19 19:00,Sat 06/20 07:00,+49 157 643 7751
+HOSP-1088,Bianca,Dlamini,Registered Nurse,Pediatrics,"BLS, PALS",Full-time,48,Flexible,No,Active,"Night-owl, happy on nights",Tue 06/16 07:00,Tue 06/16 19:00,+49 157 572 5161
+HOSP-1089,Greta,Novak,Nurse Practitioner,Emergency,"BLS, ACLS, TNCC",Full-time,48,Day,Yes,Active,Calm under pressure in codes,Thu 06/18 07:00,Thu 06/18 19:00,+49 168 406 7951
+HOSP-1090,Anya,Lindgren,Registered Nurse,Cardiology,"BLS, ACLS",Full-time,48,Night,Yes,Active,Recently returned from parental leave,Thu 06/18 19:00,Fri 06/19 07:00,+49 172 402 1359
+HOSP-1091,Hana,Costa,Charge Nurse,Emergency,"BLS, ACLS, TNCC",Part-time,30,Flexible,Yes,Active,"Union rep, watches hours closely",Tue 06/16 07:00,Tue 06/16 19:00,+49 176 393 4770
+HOSP-1092,Hassan,Fernández,Surgeon,Surgery,"BLS, ACLS, ATLS",Part-time,30,Night,No,Active,"Night-owl, happy on nights",Thu 06/18 19:00,Fri 06/19 07:00,+49 170 199 1645
+HOSP-1093,Niko,Sato,Charge Nurse,Emergency,"BLS, ACLS, TNCC",Part-time,30,Day,Yes,Active,Working toward charge-nurse role,Sat 06/20 07:00,— on shift —,+49 156 235 9837
+HOSP-1094,Nadia,Hoffmann,Nurse Practitioner,General Medicine,BLS,Part-time,30,Day,No,Active,Recently returned from parental leave,Sat 06/20 07:00,— on shift —,+49 173 991 6549
+HOSP-1095,Isla,Lindgren,Registered Nurse,ICU,"BLS, ACLS",Per-diem,36,Flexible,No,Active,"Quiet, dependable, rarely calls out",Thu 06/18 07:00,Thu 06/18 19:00,+49 161 192 7464
+HOSP-1096,Liam,Novak,Registered Nurse,General Medicine,BLS,Full-time,48,Flexible,Yes,Active,Calm under pressure in codes,Wed 06/17 07:00,Wed 06/17 19:00,+49 153 791 4830
+HOSP-1097,Rosa,Nguyen,Pharmacy Technician,Pharmacy,CPhT,Full-time,48,Flexible,Yes,Active,"Commutes far, dislikes back-to-backs",Fri 06/19 07:00,Fri 06/19 19:00,+49 179 817 5951
+HOSP-1098,Carmen,Müller,Registered Nurse,Pediatrics,"BLS, PALS",Full-time,48,Flexible,Yes,Active,"Quiet, dependable, rarely calls out",Thu 06/18 07:00,Thu 06/18 19:00,+49 154 497 8432
+HOSP-1099,Oskar,Wagner,Registered Nurse,General Medicine,BLS,Part-time,30,Day,Yes,Active,"Union rep, watches hours closely",Wed 06/17 07:00,Wed 06/17 19:00,+49 169 517 5583
+HOSP-1100,Mia,Reyes,Registered Nurse,Oncology,"BLS, OCN",Full-time,48,Day,Yes,On Leave,Calm under pressure in codes,Tue 06/16 07:00,Tue 06/16 19:00,+49 167 760 6876
 
-STAFF ROSTER:
-- Dr. Anna Müller | Anästhesistin | +49 681 100-1001 | Available: Mon-Wed, Fri nights
-- Nurse Klaus Weber | Krankenpfleger (Intensiv) | +49 681 100-1002 | Available: weekends, Thu nights
-- Nurse Sarah Becker | Krankenpflegerin (Kardiologie) | +49 681 100-1003 | Available: all nights except Tue
-- Dr. Jonas Fischer | Internist | +49 681 100-1004 | Available: Mon/Wed/Fri
-- Nurse Lena Hoffmann | Krankenpflegerin (Chirurgie) | +49 681 100-1005 | Available: weekends
-- Dr. Maria Schmidt | Notärztin | +49 681 100-1006 | Available: all shifts
-- Nurse Thomas Klein | Krankenpfleger (Neurologie) | +49 681 100-1007 | Available: Tue/Thu/Sat nights
-- Nurse Julia Braun | Krankenpflegerin (Intensiv) | +49 681 100-1008 | Available: Mon-Thu nights
-- Dr. Felix Wagner | Chirurg | +49 681 100-1009 | Available: weekends, Fri
-- Nurse Petra Schulz | Krankenpflegerin (Allgemein) | +49 681 100-1010 | Available: flexible`,
+--- WEEKLY SCHEDULE (D=Day 07-19, N=Night 19-07, O=Off) ---
+Employee ID,Name,Role,Department,Fri 06/19,Sat 06/20,Sun 06/21,Mon 06/22,Tue 06/23,Wed 06/24,Thu 06/25,Fri 06/26,Scheduled Hrs (next 7d)
+HOSP-1001,Isla Nguyen,Registered Nurse,Cardiology,D,D,O,O,O,D,D,O,36
+HOSP-1002,Tariq Bianchi,Certified Nursing Assistant,General Medicine,O,N,O,O,D,O,O,D,36
+HOSP-1003,Hannah Reyes,Registered Nurse,Maternity,O,O,D,O,O,O,D,N,36
+HOSP-1004,Hassan Novak,Certified Nursing Assistant,Emergency,O,N,N,N,O,O,O,O,36
+HOSP-1005,Ethan Wagner,Physician,Surgery,O,D,O,N,O,O,N,O,36
+HOSP-1006,Hannah Kim,Registered Nurse,Oncology,D,O,O,D,D,N,O,O,36
+HOSP-1007,Hannah Lindgren,Registered Nurse,Maternity,O,N,O,N,O,N,O,N,48
+HOSP-1008,Sara Weber,Registered Nurse,Cardiology,O,O,O,O,N,O,N,O,24
+HOSP-1009,Nora Novak,Registered Nurse,Pediatrics,D,O,D,D,D,O,O,O,36
+HOSP-1010,Caleb Marino,Certified Nursing Assistant,ICU,D,D,D,O,D,O,O,O,36
+HOSP-1011,Reza Novak,Physician,General Medicine,D,O,N,O,O,D,D,O,36
+HOSP-1012,Isla Petrov,Registered Nurse,Maternity,O,O,O,O,O,O,O,O,0
+HOSP-1013,Dunia Esposito,Registered Nurse,Surgery,O,N,N,O,O,N,O,O,36
+HOSP-1014,Sofia Müller,Physician,Oncology,O,D,D,O,N,O,O,D,36
+HOSP-1015,Emma Holm,Physician,General Medicine,O,O,N,N,O,O,D,D,48
+HOSP-1016,Niko Weber,Registered Nurse,Oncology,O,D,D,D,O,O,O,D,36
+HOSP-1017,Aisha Hernandez,Registered Nurse,Emergency,O,D,D,O,O,N,O,O,36
+HOSP-1018,Samir Vasquez,Radiologic Technologist,Radiology,O,O,D,D,O,D,O,O,36
+HOSP-1019,Zara Dlamini,Registered Nurse,ICU,O,O,D,O,O,D,O,O,12
+HOSP-1020,Marco Costa,Radiologic Technologist,Radiology,N,O,O,D,O,O,D,N,36
+HOSP-1021,Mateo Holm,Registered Nurse,Surgery,O,D,D,D,D,O,O,O,48
+HOSP-1022,Greta Petrov,Certified Nursing Assistant,Maternity,D,O,O,D,D,O,O,D,36
+HOSP-1023,Nina Sørensen,Registered Nurse,General Medicine,O,O,D,D,O,D,D,O,48
+HOSP-1024,Olivia Dubois,Certified Nursing Assistant,ICU,O,O,O,D,O,D,D,O,36
+HOSP-1025,Emil Kowalski,Certified Nursing Assistant,Maternity,O,D,O,D,O,D,O,D,48
+HOSP-1026,Layla Wagner,Registered Nurse,Cardiology,O,D,D,D,O,O,O,D,48
+HOSP-1027,Dunia Novak,Nurse Practitioner,Pediatrics,O,O,D,D,D,O,O,O,36
+HOSP-1028,Liam Wagner,Registered Nurse,General Medicine,O,O,O,D,D,O,D,D,48
+HOSP-1029,Freya Petrov,Pharmacist,Pharmacy,O,O,D,O,N,O,O,N,36
+HOSP-1030,Mateo Janssen,Physician,Maternity,O,O,O,O,O,O,O,O,0
+HOSP-1031,Otto Okafor,Registered Nurse,ICU,O,O,D,D,O,D,O,O,24
+HOSP-1032,Ethan Schmidt,Nurse Practitioner,Oncology,N,O,O,D,O,D,O,D,48
+HOSP-1033,Otto Romano,Pharmacy Technician,Pharmacy,D,O,O,D,O,D,D,O,48
+HOSP-1034,Elena Sørensen,Physician,Oncology,N,O,O,D,N,O,D,O,36
+HOSP-1035,Lucia Rossi,Radiologic Technologist,Radiology,N,O,O,D,O,O,N,D,36
+HOSP-1036,Bruno Ivanov,Physician,Cardiology,D,O,O,N,D,O,O,N,36
+HOSP-1037,Jonas Dubois,Pharmacy Technician,Pharmacy,O,D,D,O,D,O,O,D,48
+HOSP-1038,Isla Adeyemi,Pharmacist,Pharmacy,O,O,N,O,O,N,D,O,36
+HOSP-1039,Ines Khan,Certified Nursing Assistant,Oncology,N,O,O,N,O,O,D,O,36
+HOSP-1040,Wren Silva,Registered Nurse,Surgery,O,O,O,N,D,O,O,N,36
+HOSP-1041,Amara Petrov,Registered Nurse,Surgery,N,O,O,N,D,O,O,N,36
+HOSP-1042,Olivia Petrov,Certified Nursing Assistant,General Medicine,O,D,D,O,O,D,D,O,48
+HOSP-1043,Nora Nguyen,Registered Nurse,Emergency,O,O,D,O,D,D,O,O,36
+HOSP-1044,Pavel Weber,Registered Nurse,Surgery,O,D,D,D,O,O,O,D,48
+HOSP-1045,Malik Patel,Registered Nurse,General Medicine,N,O,O,D,O,D,O,D,48
+HOSP-1046,Lara Kovač,Registered Nurse,General Medicine,N,O,O,O,N,O,O,N,36
+HOSP-1047,Ravi Antov,Registered Nurse,General Medicine,N,O,N,O,O,N,O,O,36
+HOSP-1048,Finn Larsson,Registered Nurse,Surgery,O,D,D,D,D,O,O,O,48
+HOSP-1049,Aaron Adeyemi,Pharmacy Technician,Pharmacy,O,O,D,O,D,D,O,D,48
+HOSP-1050,Aaron Park,Physician,General Medicine,O,O,O,N,D,O,D,O,36
+HOSP-1051,Kai Lindgren,Respiratory Therapist,Pediatrics,N,O,O,D,O,N,O,D,48
+HOSP-1052,Malik Dubois,Registered Nurse,Emergency,N,O,O,N,D,O,O,N,36
+HOSP-1053,Anya Kowalski,Radiologic Technologist,Radiology,N,O,D,O,O,N,O,D,48
+HOSP-1054,Sam Nguyen,Pharmacist,Pharmacy,N,O,D,O,D,O,O,N,36
+HOSP-1055,Hassan Esposito,Physician,ICU,O,O,O,O,O,O,O,O,0
+HOSP-1056,Omar Bakker,Registered Nurse,Surgery,N,O,O,D,O,D,O,O,12
+HOSP-1057,Oskar Hernandez,Certified Nursing Assistant,General Medicine,N,O,D,O,O,N,D,O,36
+HOSP-1058,Diego Bauer,Certified Nursing Assistant,Pediatrics,O,D,O,D,O,D,O,D,48
+HOSP-1059,Felix Haddad,Registered Nurse,ICU,"BLS, ACLS",Full-time,48,Flexible,N,O,D,D,O,D,O,O,36
+HOSP-1060,Marco Marino,Registered Nurse,Surgery,D,O,N,O,D,O,D,O,36
+HOSP-1061,Olivia Haddad,Registered Nurse,Maternity,N,O,O,D,O,N,O,O,24
+HOSP-1062,Bruno Reyes,Registered Nurse,Surgery,N,O,O,N,D,O,O,N,36
+HOSP-1063,Freya Schmidt,Registered Nurse,Cardiology,O,O,O,O,O,O,O,O,0
+HOSP-1064,Ravi Kovač,Pharmacy Technician,Pharmacy,O,O,D,D,O,O,D,O,36
+HOSP-1065,Liam Lefebvre,Registered Nurse,General Medicine,O,O,O,O,O,O,O,O,0
+HOSP-1066,Samir Petrov,Radiologic Technologist,Radiology,O,D,D,O,O,D,O,O,36
+HOSP-1067,Aila Hernandez,Pharmacy Technician,Pharmacy,O,O,D,D,O,O,D,O,36
+HOSP-1068,Emil Bianchi,Registered Nurse,General Medicine,O,D,O,D,O,D,O,D,48
+HOSP-1069,Chloe Janssen,Registered Nurse,Surgery,O,D,D,O,D,O,D,O,48
+HOSP-1070,Theo Rossi,Registered Nurse,Surgery,N,O,O,D,O,N,O,D,36
+HOSP-1071,Yara Müller,Registered Nurse,General Medicine,O,D,D,D,O,O,O,D,48
+HOSP-1072,Selin Müller,Radiologic Technologist,Radiology,O,O,D,O,D,D,O,O,36
+HOSP-1073,Felix Esposito,Registered Nurse,Cardiology,O,O,D,O,N,O,D,O,36
+HOSP-1074,Samir Rossi,Registered Nurse,Pediatrics,O,O,D,D,O,O,D,O,36
+HOSP-1075,Carmen Ivanov,Certified Nursing Assistant,Oncology,O,O,D,O,O,D,O,D,36
+HOSP-1076,Greta Kowalski,Registered Nurse,Oncology,O,D,O,D,D,O,O,O,36
+HOSP-1077,Malik Romano,Registered Nurse,Emergency,D,O,O,D,O,N,O,D,48
+HOSP-1078,Lena Sato,Radiologic Technologist,Radiology,O,O,D,O,O,N,D,O,36
+HOSP-1079,Mateo Bianchi,Registered Nurse,ICU,O,O,D,D,O,O,D,O,24
+HOSP-1080,Janek Abebe,Registered Nurse,Surgery,O,O,D,O,N,O,D,O,36
+HOSP-1081,Aaron Ivanov,Registered Nurse,General Medicine,N,O,O,N,O,D,O,O,24
+HOSP-1082,Mei Abebe,Registered Nurse,Oncology,D,O,O,D,D,O,N,O,36
+HOSP-1083,Carmen Rossi,Certified Nursing Assistant,Oncology,D,O,O,D,O,N,O,O,24
+HOSP-1084,Dunia Bakker,Physician,Oncology,O,O,N,O,D,O,O,N,36
+HOSP-1085,Omar Abebe,Registered Nurse,Cardiology,N,O,D,O,N,O,O,D,36
+HOSP-1086,Tomas Rossi,Pharmacist,Pharmacy,O,O,D,D,O,O,D,O,36
+HOSP-1087,Selin Kovač,Nurse Practitioner,Cardiology,N,O,O,N,O,D,O,O,24
+HOSP-1088,Bianca Dlamini,Registered Nurse,Pediatrics,O,O,D,D,O,N,O,O,36
+HOSP-1089,Greta Novak,Nurse Practitioner,Emergency,O,O,O,D,O,D,D,O,36
+HOSP-1090,Anya Lindgren,Registered Nurse,Cardiology,N,O,O,D,O,N,O,D,36
+HOSP-1091,Hana Costa,Charge Nurse,Emergency,O,O,D,D,O,O,D,O,36
+HOSP-1092,Hassan Fernández,Surgeon,Surgery,N,O,O,D,O,O,N,O,24
+HOSP-1093,Niko Sato,Charge Nurse,Emergency,O,D,D,O,O,D,O,O,36
+HOSP-1094,Nadia Hoffmann,Nurse Practitioner,General Medicine,O,D,D,O,O,O,D,O,36
+HOSP-1095,Isla Lindgren,Registered Nurse,ICU,O,O,D,D,O,O,D,O,24
+HOSP-1096,Liam Novak,Registered Nurse,General Medicine,O,O,O,D,O,N,D,O,36
+HOSP-1097,Rosa Nguyen,Pharmacy Technician,Pharmacy,D,O,O,N,O,D,O,O,24
+HOSP-1098,Carmen Müller,Registered Nurse,Pediatrics,O,O,D,D,D,O,O,O,36
+HOSP-1099,Oskar Wagner,Registered Nurse,General Medicine,O,O,D,O,D,O,N,O,36
+HOSP-1100,Mia Reyes,Registered Nurse,Oncology,O,O,O,O,O,O,O,O,0`,
   },
   {
     id: 'work-permit',
