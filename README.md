@@ -1,33 +1,55 @@
 # Orion — Intelligent Agent Platform
 
-A multi-agent AI platform built for the MonaAI Hackathon. Each agent is purpose-built for a specific business workflow at a real Saarland company, powered by Google Gemini 2.5 Flash.
+Orion is a hackathon-built, multi-agent AI experience designed to show how conversational AI can support real business workflows in a fast, practical, and visually polished way. Built during the MonaAI Hackathon, the project brings together a set of specialized agents that help with document review, HR operations, finance workflows, customer insights, marketing, and more.
 
-## Agents
+The idea behind Orion was simple: turn a set of common enterprise tasks into intuitive AI agents that feel useful from the first interaction. Instead of building a single generic chatbot, the project explores how multiple purpose-built agents can work together to make complex workflows feel approachable.
+
+## Why this project exists
+
+This project was created as a rapid proof of concept for how AI could be embedded into everyday business processes. The focus was not on building a perfect production system, but on demonstrating that a strong product experience can be created quickly when the right ideas, prompts, and interfaces come together.
+
+To be transparent, this was mostly vibe coded in the best possible sense: fast, experimental, AI-assisted, and product-first. The goal was to ship something compelling, useful, and visually coherent under hackathon constraints rather than over-engineer every detail from the start.
+
+## What Orion does
+
+Orion presents a collection of domain-specific agents, each tuned for a concrete workflow:
+
+- Review and validate documents such as work permits or invoices
+- Support HR and staffing processes such as shift replacement and interview preparation
+- Detect fraud or inconsistencies in CVs and supporting documents
+- Help with marketing and competitive analysis
+- Generate customer and pricing insights from business context
+- Protect sensitive workflows with prompt-injection-aware handling
+
+The experience is built as a lightweight web app where users can select an agent, interact with it naturally, and upload files when needed.
+
+## Agent overview
 
 | # | Agent | Company | What it does |
 |---|---|---|---|
-| 1 | Work Permit Validation | Leistenschneider GmbH | Validates work permits and residence documents |
-| 2 | Invoice Processing | Globus Group | Reads invoices, extracts fields, routes to department |
-| 3 | Shift Replacement | UKS Homburg | Finds eligible staff to cover open hospital shifts |
-| 4 | CV Fraud Detection | Persowerk Deutschland GmbH | Verifies CVs and certificates, detects fake companies |
-| 5 | Interview Questions | Kohlpharma GmbH | Generates tailored interview questions per role and CV |
-| 6 | Marketing & Filmmaker | Allgäuer Latschenkiefer | Creates short-form video reel concepts for TikTok/Instagram |
-| 7 | Targeting Analytics | Allgäuer Latschenkiefer | Builds audience segments and timing signals per SKU |
-| 8 | Dynamic Pricing | Allgäuer Latschenkiefer | Recommends price adjustments based on weather, events, supply signals |
-| 9 | Competitive Gap Analysis | Allgäuer Latschenkiefer | Maps white-space opportunities against 10 competitors |
-| 10 | Secure Email Agent | Rheinmetall AG | Verifies applicant documents with prompt-injection protection |
+| 1 | Work Permit Validation | Leistenschneider GmbH | Reviews work permits and residency-related documents |
+| 2 | Invoice Processing | Globus Group | Extracts invoice details, routes them to the appropriate department, and summarizes the action needed |
+| 3 | Shift Replacement | UKS Homburg | Helps identify suitable staff to cover open hospital shifts |
+| 4 | CV Fraud Detection | Persowerk Deutschland GmbH | Checks CVs and certificates for inconsistencies and suspicious signals |
+| 5 | Interview Questions | Kohlpharma GmbH | Generates tailored interview questions based on a role and CV |
+| 6 | Marketing & Filmmaker | Allgäuer Latschenkiefer | Creates short-form video and social content concepts |
+| 7 | Targeting Analytics | Allgäuer Latschenkiefer | Builds audience segments and timing signals for product targeting |
+| 8 | Dynamic Pricing | Allgäuer Latschenkiefer | Recommends pricing adjustments based on contextual signals |
+| 9 | Competitive Gap Analysis | Allgäuer Latschenkiefer | Maps whitespace opportunities against competitor positioning |
+| 10 | Secure Email Agent | Rheinmetall AG | Verifies submitted documents while reducing prompt-injection risk |
 
-## Tech Stack
+## Tech stack
 
-- **Framework:** Next.js 14 (App Router)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS
-- **AI:** Google Gemini 2.5 Flash via `@google/generative-ai`
-- **Features:** File upload (PDF, DOCX, PNG), Google Search grounding, per-agent temperature control
+- Next.js 14 with the App Router
+- TypeScript
+- Tailwind CSS
+- Google Gemini 2.5 Flash via the Google Generative AI SDK
+- File upload support for PDFs, DOCX, and images
+- Prompt-based workflows tailored per agent
 
-## Getting Started
+## Getting started
 
-### 1. Clone and install
+### 1. Clone the project
 
 ```bash
 git clone https://github.com/vantablack2443/monaai-hackathon.git
@@ -39,22 +61,23 @@ npm install
 
 Create a `.env.local` file in the project root:
 
-```
+```env
 GEMINI_API_KEY=your_key_here
 ```
 
-Get a key at [Google AI Studio](https://aistudio.google.com/app/apikey).
+You can generate a key at [Google AI Studio](https://aistudio.google.com/app/apikey).
 
-### 3. Run
+### 3. Run locally
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
+Then open [http://localhost:3000](http://localhost:3000).
 
 ## Notes
 
-- Staff roster, product data, and schedules are **synthetic demo data** for hackathon purposes
-- Dr. Theiss agents (6–9) are grouped under one sidebar entry as they share a brand
+- The staff roster, product data, and schedules included in the demo are synthetic and intended for hackathon purposes.
+- The Dr. Theiss-related agents are grouped together in the interface because they share a common brand context.
+- This project is best understood as a strong prototype and demo experience rather than a finished enterprise product.
+
